@@ -1,1 +1,9 @@
-<RCC/>
+<RCC>
+    <qresource prefix="/images"/>
+    <qresource prefix="/">
+        <file>Down_Button.png</file>
+        <file>Left_Button.png</file>
+        <file>Right_Button.png</file>
+        <file>Up_Button.png</file>
+    </qresource>
+</RCC>
