@@ -6,6 +6,9 @@
 #include <QtSerialPort/QSerialPort>
 #include <QSerialPortInfo>
 #include <QMessageBox>
+#include <QString>
+#include <QStringList>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -21,21 +24,26 @@ MainWindow::MainWindow(QWidget *parent) :
                 ui->cbxCom->addItem(port.portName());
     }
 
-    serial.setPortName(ui->cbxCom->currentText());
-    serial.setBaudRate(QSerialPort::Baud9600);
-    serial.setDataBits(QSerialPort::Data8);
-    serial.setParity(QSerialPort::NoParity);
-    serial.setStopBits(QSerialPort::OneStop);
-    serial.setFlowControl(QSerialPort::NoFlowControl);
-    serial.open(QIODevice::ReadWrite);
-
+    //Add the common Baud Rates
+    ui->cbxBaud->addItem(QStringLiteral("9600"), QSerialPort::Baud9600);
+    ui->cbxBaud->addItem(QStringLiteral("19200"), QSerialPort::Baud19200);
+    ui->cbxBaud->addItem(QStringLiteral("38400"), QSerialPort::Baud38400);
+    ui->cbxBaud->addItem(QStringLiteral("115200"), QSerialPort::Baud115200);
+    ui->cbxBaud->setCurrentIndex(3);//Set to the default baud rate for this mill
 
 }
 
 MainWindow::~MainWindow()
 {
+    //serial.close();
+    //delete ui;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    on_btnRest_released();//This is the command to implement the rest procedure
+    serial.close();//Close the serial communication so it may be picked up later
     delete ui;
-    serial.close();
 }
 
 void PromptProbeDataClear(){
@@ -58,6 +66,113 @@ void PromptProbeDataClear(){
     }
 }
 
+QString MainWindow::SendGCode(QString Command){
+    QString Response; //What will be read back from the machine
+    QByteArray CommandBytes = Command.toLocal8Bit(); //Make it so the string will play with serial
+
+    if(serial.isOpen()){
+        if (Command.contains("G90")){
+            //We are in absoloute movement
+            RelativeEnabled = false;
+        }
+        if (Command.contains("G91")){
+            //We are in relative movement
+            RelativeEnabled = true;
+        }
+        if(CompensateBacklash){
+            //Check and see if this is a motion command. If it is, then add backlash error.
+            if(Command.contains("G1")|Command.contains("G0")){
+                //Extract positional values
+                QStringList CommandParts = Command.split(" ");
+                if (Command.contains("X")){
+                      QString Xpos = CommandParts.filter("X").at(0);
+                      Xpos = Xpos.mid(1);
+                      float XposVal = Xpos.toFloat();
+                      qDebug()<<"X Destination: "<<XposVal;
+                      if (RelativeEnabled){
+                          XposVal = XposVal + PosX;
+                      }
+                      if ((XposVal > PosX) && (DeltaX < 0)){
+                        //Compensate with positive backlash
+                        qDebug()<<"Compensating for X Backlash";
+
+                        DeltaX = XposVal - PosX;
+                        PosX = XposVal;
+                      }
+                       else if ((XposVal < PosX) && (DeltaX >= 0)){
+                        //Compensate with positive backlash
+                        qDebug()<<"Compensating for X Backlash";
+                        DeltaX = XposVal - PosX;
+                        PosX = XposVal;
+                      }
+                      else if (XposVal != PosX){
+                          DeltaX = XposVal - PosX;
+                          PosX = XposVal;
+                      }
+                }
+                if (Command.contains("Y")){
+                    QString Ypos = CommandParts.filter("Y").at(0);
+                    Ypos = Ypos.mid(1);
+                    float YposVal = Ypos.toFloat();
+                    qDebug()<<"Y Destination: "<<YposVal;
+                    if (RelativeEnabled){
+                        YposVal = YposVal + PosY;
+                    }
+                    if ((YposVal > PosY) && (DeltaY < 0)){
+                      //Compensate with positive backlash
+                      qDebug()<<"Compensating for Y Backlash";
+                      DeltaY = YposVal - PosY;
+                      PosY = YposVal;
+                    }
+                     else if ((YposVal < PosY) && (DeltaY >= 0)){
+                      //Compensate with positive backlash
+                      qDebug()<<"Compensating for Y Backlash";
+                      DeltaY = YposVal - PosY;
+                      PosY = YposVal;
+                    }
+                    else if (YposVal != PosY){
+                        DeltaY = YposVal - PosY;
+                        PosY = YposVal;
+                    }
+                }
+                if (Command.contains("Z")){
+                    QString Zpos = CommandParts.filter("Z").at(0);
+                    Zpos = Zpos.mid(1);
+                    float ZposVal = Zpos.toFloat();
+                    qDebug()<<"Z Destination: "<<ZposVal;
+                    if (RelativeEnabled){
+                        ZposVal = ZposVal + PosZ;
+                    }
+                    if ((ZposVal > PosZ) && (DeltaZ < 0)){
+                      //Compensate with positive backlash
+                      qDebug()<<"Compensating for Z Backlash";
+                      DeltaZ = ZposVal - PosZ;
+                      PosZ = ZposVal;
+                    }
+                     else if ((ZposVal < PosZ) && (DeltaZ >= 0)){
+                      //Compensate with positive backlash
+                      qDebug()<<"Compensating for Z Backlash";
+                      DeltaZ = ZposVal - PosZ;
+                      PosZ = ZposVal;
+                    }
+                    else if (ZposVal != PosZ){
+                        DeltaZ = ZposVal - PosZ;
+                        PosZ = ZposVal;
+                    }
+                }
+            }
+        }
+        serial.write(CommandBytes + "\n"); //Send command & append new line characer
+        ui->tbxCommandHistory->append("S: " + Command); //Add the command to the history
+    } else {
+        qDebug() << "Not connected";
+        ui->tbxCommandHistory->append("ERROR: Failure to send command - not connected");
+    }
+
+    Response = serial.readAll(); //Read the response from the machine
+    return Response;
+}
+
 void MainWindow::on_pbFileBrowse_released()
 {
     FilePath = QFileDialog::getOpenFileName();//Open the system file browser, load selected path to FilePath
@@ -73,10 +188,139 @@ void MainWindow::on_txtFileName_returnPressed()
 
 void MainWindow::on_btnSendCommand_released()
 {
-    QByteArray Command = ui->txtCommand->text().toLocal8Bit();
+    /*QByteArray Command = ui->txtCommand->text().toLocal8Bit();
 
-    serial.write(Command);
-
+    if(serial.isOpen()){
+        serial.write(Command + "\n");
+        ui->tbxCommandHistory->append("S: " + Command);
+    } else {
+        qDebug() << "Not connected";
+    }*/
+    SendGCode(ui->txtCommand->text());
     ui->txtCommand->clear();
 
+}
+
+void MainWindow::on_btnConnect_released()
+{
+    if(serial.isOpen()){
+        serial.close();
+        ui->btnConnect->setText("Connect");
+    }
+    else{
+        serial.setPortName(ui->cbxCom->currentText());
+        serial.setBaudRate(ui->cbxBaud->currentText().toInt());
+        serial.setDataBits(QSerialPort::Data8);
+        serial.setParity(QSerialPort::NoParity);
+        serial.setStopBits(QSerialPort::OneStop);
+        serial.setFlowControl(QSerialPort::NoFlowControl);
+        if(serial.open(QIODevice::ReadWrite)){
+                qDebug() << "Connection Successful";
+                ui->btnConnect->setText("Disconnect");
+        }else {
+                qDebug() << "Connection Failed";
+        }
+        QByteArray data = serial.readAll();
+        ui->tbxCommandHistory->append(data);
+    }
+}
+
+void MainWindow::on_btnIncY_released()
+{
+    if(~RelativeEnabled){SendGCode("G91");}
+    SendGCode(Movement + " Y" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    if(~RelativeEnabled){SendGCode("G90");}
+}
+
+void MainWindow::on_btnIncZ_released()
+{
+    if(~RelativeEnabled){SendGCode("G91");}
+    SendGCode(Movement + " Z" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    if(~RelativeEnabled){SendGCode("G90");}
+}
+
+void MainWindow::on_btnDecX_released()
+{
+    if(~RelativeEnabled){SendGCode("G91");}
+    SendGCode(Movement + " X-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    if(~RelativeEnabled){SendGCode("G90");}
+}
+
+void MainWindow::on_btnIncX_released()
+{
+    if(~RelativeEnabled){SendGCode("G91");}
+    SendGCode(Movement + " X" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    if(~RelativeEnabled){SendGCode("G90");}
+}
+void MainWindow::on_btnDecY_released()
+{
+    if(~RelativeEnabled){SendGCode("G91");}
+    SendGCode(Movement + " Y-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    if(~RelativeEnabled){SendGCode("G90");}
+}
+
+void MainWindow::on_btnDecZ_released()
+{
+    if(~RelativeEnabled){SendGCode("G91");}
+    SendGCode(Movement + " Z-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    if(~RelativeEnabled){SendGCode("G90");}
+}
+
+void MainWindow::on_txtIncrement_textChanged(const QString &arg1)
+{
+    //When the Increment text is changed, update the global variable
+    Increment = ui->txtIncrement->text().toFloat();
+}
+
+void MainWindow::on_txtFeedrate_textChanged(const QString &arg1)
+{
+    //When the Feedrate text is changed, update the global variable
+    Feedrate = ui->txtFeedrate->text().toFloat();
+}
+
+void MainWindow::on_btnSetZero_released()
+{
+    //Set the current location to (0,0,0)
+    SendGCode(SetPosition + " X0 Y0 Z0");
+    //Reset All backlash tracking variables.
+    PosX = 0; //Tracking position of X motors
+    PosY = 0; //Tracking position of Y motors
+    PosZ = 0; //Tracking position of Z motors
+    DeltaX = 0;
+    DeltaY = 0;
+    DeltaZ = 0;
+}
+
+void MainWindow::on_btnRest_released()
+{
+    //Here is a resting procedure that is customized for the OSE Circuit Mill
+    SendGCode("G28"); //Home all axes
+    SendGCode(RelativeMovement);
+    SendGCode(Movement + " Z-12 F100");
+    SendGCode(AbsoluteMovement);
+    SendGCode("M84");//Disable motors This only works in Marlin
+}
+
+void MainWindow::on_btnHomeX_released()
+{
+    //Home the X Axis
+    SendGCode("G28 X");
+}
+
+void MainWindow::on_btnHomeY_released()
+{
+    //Home the Y Axis
+    SendGCode("G28 Y");
+}
+
+void MainWindow::on_btnHomeZ_released()
+{
+    //Home the Z Axis
+    SendGCode("G28 Z");
+}
+
+void MainWindow::on_btnHomeall_released()
+{
+    //Home all axes
+    SendGCode("G28 X Y Z");
 }

@@ -8,33 +8,42 @@
 
 //Here are all of the global parameters referenced by the program
 
+
 //Tied to GUI elements
 QString FilePath;
-extern QString ComPort;
-extern QString Baud;
-extern QString ConnectionStatus;
-extern float SizeX;
-extern float SizeY;
-extern int PointsX;
-extern int PointsY;
-extern float Increment;
-extern float Feedrate;
-extern float MovementSpeed;
-extern float ProbingSpeed;
-extern float TravelClearance;
-extern bool CompensateBacklash;
-extern float BacklashX;
-extern float BacklashY;
-extern float BacklashZ;
-extern QString RelativeMovement;
-extern QString SetPosition;
-extern QString Movement;
-extern QString CMDComplete;
-extern QString EndstopHit;
+QString ComPort;
+QString Baud;
+QString ConnectionStatus;
+float SizeX;
+float SizeY;
+int PointsX;
+int PointsY;
+float Increment = 10;
+float Feedrate = 200;
+float MovementSpeed;
+float ProbingSpeed;
+float TravelClearance;
+bool CompensateBacklash = true;
+float BacklashX = 0;
+float BacklashY = 0;
+float BacklashZ = 0;
+QString RelativeMovement = "G91";
+QString AbsoluteMovement = "G90";
+QString SetPosition = "G92";
+QString Movement = "G1";
+QString CMDComplete;
+QString EndstopHit;
 /*//////////////////////*/
 
 //Variables for program book keeping
-extern bool ProbeDataExists =false;
+bool ProbeDataExists =false;
+float PosX = 0; //Tracking position of X motors
+float PosY = 0; //Tracking position of Y motors
+float PosZ = 0; //Tracking position of Z motors
+float DeltaX = 0;
+float DeltaY = 0;
+float DeltaZ = 0;
+bool RelativeEnabled = 0;
 /*//////////////////////*/
 
 //Program resources

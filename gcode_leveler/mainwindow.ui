@@ -51,7 +51,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tabMainInterface">
      <attribute name="title">
@@ -234,7 +234,7 @@
        </rect>
       </property>
       <property name="value">
-       <number>45</number>
+       <number>0</number>
       </property>
      </widget>
      <widget class="QPushButton" name="btnAbortProbe">
@@ -263,9 +263,9 @@
      <widget class="QComboBox" name="cbxCom">
       <property name="geometry">
        <rect>
-        <x>50</x>
+        <x>40</x>
         <y>60</y>
-        <width>151</width>
+        <width>121</width>
         <height>21</height>
        </rect>
       </property>
@@ -276,7 +276,7 @@
      <widget class="QComboBox" name="cbxBaud">
       <property name="geometry">
        <rect>
-        <x>250</x>
+        <x>200</x>
         <y>60</y>
         <width>91</width>
         <height>21</height>
@@ -289,7 +289,7 @@
      <widget class="QLabel" name="lblCom">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>0</x>
         <y>60</y>
         <width>41</width>
         <height>21</height>
@@ -308,7 +308,7 @@
      <widget class="QLabel" name="lblBaud">
       <property name="geometry">
        <rect>
-        <x>210</x>
+        <x>160</x>
         <y>60</y>
         <width>41</width>
         <height>21</height>
@@ -324,23 +324,17 @@
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
       </property>
      </widget>
-     <widget class="QRadioButton" name="radStatus">
+     <widget class="QPushButton" name="btnConnect">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>300</x>
         <y>60</y>
-        <width>21</width>
-        <height>22</height>
+        <width>71</width>
+        <height>21</height>
        </rect>
       </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;CNC connection status.&lt;br/&gt;White: No Connection&lt;br/&gt;Black: Connection Successful&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
       <property name="text">
-       <string/>
-      </property>
-      <property name="checkable">
-       <bool>false</bool>
+       <string>Connect</string>
       </property>
      </widget>
     </widget>
@@ -380,102 +374,6 @@
        </rect>
       </property>
      </widget>
-     <widget class="QLabel" name="lblXInc">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>10</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="pixmap">
-       <pixmap resource="resources.qrc">:/Up_Button.png</pixmap>
-      </property>
-     </widget>
-     <widget class="QLabel" name="lblYInc">
-      <property name="geometry">
-       <rect>
-        <x>70</x>
-        <y>40</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="pixmap">
-       <pixmap resource="resources.qrc">:/Right_Button.png</pixmap>
-      </property>
-     </widget>
-     <widget class="QLabel" name="lblXDec">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>70</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="pixmap">
-       <pixmap resource="resources.qrc">:/Down_Button.png</pixmap>
-      </property>
-     </widget>
-     <widget class="QLabel" name="lblYDec">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>40</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="pixmap">
-       <pixmap resource="resources.qrc">:/Left_Button.png</pixmap>
-      </property>
-     </widget>
-     <widget class="QLabel" name="lblZInc">
-      <property name="geometry">
-       <rect>
-        <x>110</x>
-        <y>10</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="pixmap">
-       <pixmap resource="resources.qrc">:/Up_Button.png</pixmap>
-      </property>
-     </widget>
-     <widget class="QLabel" name="lblZDec">
-      <property name="geometry">
-       <rect>
-        <x>110</x>
-        <y>70</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="pixmap">
-       <pixmap resource="resources.qrc">:/Down_Button.png</pixmap>
-      </property>
-     </widget>
      <widget class="QPushButton" name="btnSendCommand">
       <property name="geometry">
        <rect>
@@ -497,6 +395,9 @@
         <width>61</width>
         <height>21</height>
        </rect>
+      </property>
+      <property name="text">
+       <string>10</string>
       </property>
      </widget>
      <widget class="QPushButton" name="btnSetZero">
@@ -612,12 +513,15 @@
         <height>21</height>
        </rect>
       </property>
+      <property name="text">
+       <string>200</string>
+      </property>
      </widget>
      <widget class="QLabel" name="lblXP">
       <property name="geometry">
        <rect>
-        <x>80</x>
-        <y>10</y>
+        <x>110</x>
+        <y>40</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -629,8 +533,8 @@
      <widget class="QLabel" name="lblXM">
       <property name="geometry">
        <rect>
-        <x>80</x>
-        <y>80</y>
+        <x>50</x>
+        <y>40</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -642,8 +546,8 @@
      <widget class="QLabel" name="lblYP">
       <property name="geometry">
        <rect>
-        <x>110</x>
-        <y>40</y>
+        <x>80</x>
+        <y>10</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -655,8 +559,8 @@
      <widget class="QLabel" name="lblYM">
       <property name="geometry">
        <rect>
-        <x>50</x>
-        <y>40</y>
+        <x>80</x>
+        <y>80</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -728,6 +632,144 @@
       </property>
       <property name="text">
        <string>Rest</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btnIncX">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>40</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="icon">
+       <iconset resource="resources.qrc">
+        <normaloff>:/Right_Button.png</normaloff>:/Right_Button.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>32</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btnIncY">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>10</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="icon">
+       <iconset resource="resources.qrc">
+        <normaloff>:/Up_Button.png</normaloff>:/Up_Button.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>32</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btnDecY">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>70</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="icon">
+       <iconset resource="resources.qrc">
+        <normaloff>:/Down_Button.png</normaloff>:/Down_Button.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>32</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btnDecX">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="icon">
+       <iconset resource="resources.qrc">
+        <normaloff>:/Left_Button.png</normaloff>:/Left_Button.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>32</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btnIncZ">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>10</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="icon">
+       <iconset resource="resources.qrc">
+        <normaloff>:/Up_Button.png</normaloff>:/Up_Button.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>32</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="btnDecZ">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>70</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="icon">
+       <iconset resource="resources.qrc">
+        <normaloff>:/Down_Button.png</normaloff>:/Down_Button.png</iconset>
+      </property>
+      <property name="iconSize">
+       <size>
+        <width>32</width>
+        <height>32</height>
+       </size>
+      </property>
+      <property name="flat">
+       <bool>true</bool>
       </property>
      </widget>
     </widget>
