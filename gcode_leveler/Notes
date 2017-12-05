@@ -1,5 +1,7 @@
 Auto-populate COM combobox: https://stackoverflow.com/questions/28938701/selecting-from-all-available-serial-ports-using-qt-gui
 Setting up serial communication: https://youtu.be/UD78xyKbrfk
+ScrollBox tutorial: https://youtu.be/QPbkJt2CYvk
+Timer for Gcode Sending doc.qt.io/qt-5/qtimer.html
 
 Prioritized To do List:
 Proper Serial Connection Interface

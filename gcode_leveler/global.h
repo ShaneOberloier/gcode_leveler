@@ -44,7 +44,10 @@ float DeltaX = 0;
 float DeltaY = 0;
 float DeltaZ = 0;
 bool RelativeEnabled = 0;
+bool RelativeOverride = 0;
+int lineNumber=0;
 /*//////////////////////*/
 
 //Program resources
 QSerialPort serial;
+QStringList GCode;

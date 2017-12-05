@@ -9,6 +9,9 @@
 #include <QString>
 #include <QStringList>
 #include <QCloseEvent>
+#include <QThread>
+#include <QTimer>
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -31,7 +34,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cbxBaud->addItem(QStringLiteral("115200"), QSerialPort::Baud115200);
     ui->cbxBaud->setCurrentIndex(3);//Set to the default baud rate for this mill
 
+    // create a timer
+    timer = new QTimer(this);
+
+    // setup signal and slot
+    connect(timer, SIGNAL(timeout()),
+          this, SLOT(MyTimerSlot()));
 }
+
 
 MainWindow::~MainWindow()
 {
@@ -41,7 +51,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    on_btnRest_released();//This is the command to implement the rest procedure
+    //on_btnRest_released();//This is the command to implement the rest procedure
     serial.close();//Close the serial communication so it may be picked up later
     delete ui;
 }
@@ -71,11 +81,11 @@ QString MainWindow::SendGCode(QString Command){
     QByteArray CommandBytes = Command.toLocal8Bit(); //Make it so the string will play with serial
 
     if(serial.isOpen()){
-        if (Command.contains("G90")){
+        if (Command.contains("G90")&~RelativeOverride){
             //We are in absoloute movement
             RelativeEnabled = false;
         }
-        if (Command.contains("G91")){
+        if (Command.contains("G91")&~RelativeOverride){
             //We are in relative movement
             RelativeEnabled = true;
         }
@@ -168,8 +178,9 @@ QString MainWindow::SendGCode(QString Command){
         qDebug() << "Not connected";
         ui->tbxCommandHistory->append("ERROR: Failure to send command - not connected");
     }
-
+    serial.waitForReadyRead(20);
     Response = serial.readAll(); //Read the response from the machine
+    ui->tbxCommandHistory->append("R: " + Response);
     return Response;
 }
 
@@ -177,7 +188,24 @@ void MainWindow::on_pbFileBrowse_released()
 {
     FilePath = QFileDialog::getOpenFileName();//Open the system file browser, load selected path to FilePath
     ui->txtFileName->setText(FilePath);//Update the text in txtFileName
+    ui->txtFileName_2->setText(FilePath);
     PromptProbeDataClear();
+
+    QFile textFile(FilePath);
+    textFile.open(QIODevice::ReadOnly | QIODevice::Text);
+    QTextStream textStream(&textFile);
+    ui->txtGCode->clear();
+    GCode.clear();
+    while(true)
+    {
+        QString line = textStream.readLine();
+        if (line.isNull())
+            break;
+        else{
+            GCode.append(line);
+            ui->txtGCode->append(line);
+           }
+    }
 
 }
 
@@ -188,17 +216,8 @@ void MainWindow::on_txtFileName_returnPressed()
 
 void MainWindow::on_btnSendCommand_released()
 {
-    /*QByteArray Command = ui->txtCommand->text().toLocal8Bit();
-
-    if(serial.isOpen()){
-        serial.write(Command + "\n");
-        ui->tbxCommandHistory->append("S: " + Command);
-    } else {
-        qDebug() << "Not connected";
-    }*/
     SendGCode(ui->txtCommand->text());
     ui->txtCommand->clear();
-
 }
 
 void MainWindow::on_btnConnect_released()
@@ -216,54 +235,70 @@ void MainWindow::on_btnConnect_released()
         serial.setFlowControl(QSerialPort::NoFlowControl);
         if(serial.open(QIODevice::ReadWrite)){
                 qDebug() << "Connection Successful";
+                serial.waitForReadyRead(1000);
+                QByteArray data;
+                while(serial.canReadLine())
+                {
+                    data = serial.readLine();
+                    ui->tbxCommandHistory->append("R: " + data);
+                    serial.waitForReadyRead(1000);
+                }
                 ui->btnConnect->setText("Disconnect");
         }else {
                 qDebug() << "Connection Failed";
         }
-        QByteArray data = serial.readAll();
-        ui->tbxCommandHistory->append(data);
+    }
+}
+
+void MainWindow::WaitForMachineReady()
+{
+    QString Response = "";
+    while(Response==""){
+        serial.write("G1\n");
+        serial.waitForReadyRead(500);
+        Response = serial.readAll(); //Read the response from the machine
     }
 }
 
 void MainWindow::on_btnIncY_released()
 {
-    if(~RelativeEnabled){SendGCode("G91");}
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Movement + " Y" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90");}
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnIncZ_released()
 {
-    if(~RelativeEnabled){SendGCode("G91");}
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Movement + " Z" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90");}
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnDecX_released()
 {
-    if(~RelativeEnabled){SendGCode("G91");}
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Movement + " X-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90");}
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnIncX_released()
 {
-    if(~RelativeEnabled){SendGCode("G91");}
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Movement + " X" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90");}
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 void MainWindow::on_btnDecY_released()
 {
-    if(~RelativeEnabled){SendGCode("G91");}
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Movement + " Y-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90");}
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnDecZ_released()
 {
-    if(~RelativeEnabled){SendGCode("G91");}
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Movement + " Z-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90");}
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_txtIncrement_textChanged(const QString &arg1)
@@ -322,5 +357,80 @@ void MainWindow::on_btnHomeZ_released()
 void MainWindow::on_btnHomeall_released()
 {
     //Home all axes
-    SendGCode("G28 X Y Z");
+    ui->tbxCommandHistory->append(SendGCode("G28 X Y Z"));
+}
+
+void MainWindow::on_cbxCompensateBacklash_stateChanged(int arg1)
+{
+    CompensateBacklash = ui->cbxCompensateBacklash->isChecked();
+}
+
+void MainWindow::on_txtFileName_textEdited(const QString &arg1)
+{
+    ui->txtFileName_2->setText(arg1);
+}
+
+void MainWindow::on_btnRun_released()
+{
+    timer->start(1000);
+    /*int lineNumber = GCode.size();
+    QString Response;
+    for(int i=0;i<=lineNumber-1;i++)
+    {
+        WaitForMachineReady();
+        Response=SendGCode(GCode[i]);
+        //while(Response=="")
+        //{
+        //    qDebug()<<"OH NO";
+        //    Response=SendGCode("G1");
+        //    qDebug()<<Response;
+        //}
+        Response.clear();
+    }*/
+}
+
+/*void MainWindow::StreamGCode()
+{
+    QString Response;
+    int LastLine = GCode.size();
+    if(lineNumber<=LastLine-1){
+        WaitForMachineReady();
+        Response=SendGCode(GCode[i]);
+        Response.clear();
+        lineNumber++;
+    }
+    else
+        timer->stop();
+}*/
+
+void MainWindow::on_pbTest_released()
+{
+
+    // msec
+    timer->start(1000);
+}
+
+void MainWindow::MyTimerSlot()
+{
+    qDebug() << "Timer...";
+    QString Response;
+    int LastLine = GCode.size();
+    if(lineNumber<=LastLine-1){
+        //WaitForMachineReady();
+        Response=SendGCode(GCode[lineNumber]);
+        Response.clear();
+        lineNumber++;
+    }
+    else
+        timer->stop();
+}
+
+void MainWindow::on_btnTest2_released()
+{
+timer->stop();
+}
+
+void MainWindow::on_pbFileBrowse_2_released()
+{
+    MainWindow::on_pbFileBrowse_released();
 }

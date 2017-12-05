@@ -5,6 +5,7 @@
 #include <QtCore/QtGlobal>
 
 #include <QtSerialPort/QSerialPort>
+#include <QTimer>
 
 namespace Ui {
 class MainWindow;
@@ -18,6 +19,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QString SendGCode(QString Command);
+    void WaitForMachineReady();
+    void MyTimer();
+    QTimer *timer;
 
 
 private slots:
@@ -58,6 +62,20 @@ private slots:
     void on_btnHomeY_released();
 
     void on_btnHomeZ_released();
+
+    void on_cbxCompensateBacklash_stateChanged(int arg1);
+
+    void on_txtFileName_textEdited(const QString &arg1);
+
+    void on_btnRun_released();
+
+    void on_pbTest_released();
+
+    void on_btnTest2_released();
+
+    void on_pbFileBrowse_2_released();
+
+    void MyTimerSlot();
 
 private:
     Ui::MainWindow *ui;
