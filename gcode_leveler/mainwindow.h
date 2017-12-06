@@ -21,7 +21,8 @@ public:
     QString SendGCode(QString Command);
     void WaitForMachineReady();
     void MyTimer();
-    QTimer *timer;
+    QTimer *StreamTimer;
+    QTimer *ReadTimer;
 
 
 private slots:
@@ -76,6 +77,14 @@ private slots:
     void on_pbFileBrowse_2_released();
 
     void MyTimerSlot();
+
+    void ReceiveData();
+
+    void on_btnPause_released();
+
+    void on_btnResume_released();
+
+    void on_btnSpindleOn_released();
 
 private:
     Ui::MainWindow *ui;

@@ -34,15 +34,36 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cbxBaud->addItem(QStringLiteral("115200"), QSerialPort::Baud115200);
     ui->cbxBaud->setCurrentIndex(3);//Set to the default baud rate for this mill
 
-    // create a timer
-    timer = new QTimer(this);
+    // create a stream timer
+    StreamTimer = new QTimer(this);
 
     // setup signal and slot
-    connect(timer, SIGNAL(timeout()),
+    connect(StreamTimer, SIGNAL(timeout()),
           this, SLOT(MyTimerSlot()));
+
+    // create a stream timer
+    ReadTimer = new QTimer(this);
+
+    // setup signal and slot
+    connect(ReadTimer, SIGNAL(timeout()),
+          this, SLOT(ReceiveData()));
 }
 
-
+void MainWindow::ReceiveData()
+{   QByteArray data="";
+    if(serial.canReadLine()){
+        data = serial.readLine();
+        if (data!="")
+        {
+            ui->tbxCommandHistory->append("R: " + data);
+            Response=data;
+            if (data=="ok\n"){
+                MachineReady=true;
+                qDebug()<<"Machine Ready";
+            }
+        }
+    }
+}
 MainWindow::~MainWindow()
 {
     //serial.close();
@@ -51,7 +72,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    //on_btnRest_released();//This is the command to implement the rest procedure
+    on_btnRest_released();//This is the command to implement the rest procedure
     serial.close();//Close the serial communication so it may be picked up later
     delete ui;
 }
@@ -77,10 +98,12 @@ void PromptProbeDataClear(){
 }
 
 QString MainWindow::SendGCode(QString Command){
-    QString Response; //What will be read back from the machine
+    //QString Response; //What will be read back from the machine
     QByteArray CommandBytes = Command.toLocal8Bit(); //Make it so the string will play with serial
-
     if(serial.isOpen()){
+        if (Command=="")
+            return "";//A blank space will cause problems
+        MachineReady =false;
         if (Command.contains("G90")&~RelativeOverride){
             //We are in absoloute movement
             RelativeEnabled = false;
@@ -178,9 +201,12 @@ QString MainWindow::SendGCode(QString Command){
         qDebug() << "Not connected";
         ui->tbxCommandHistory->append("ERROR: Failure to send command - not connected");
     }
-    serial.waitForReadyRead(20);
-    Response = serial.readAll(); //Read the response from the machine
-    ui->tbxCommandHistory->append("R: " + Response);
+    //ReadTimer->stop();
+    //serial.waitForReadyRead(50);
+    //Response = serial.readAll(); //Read the response from the machine
+    //ui->tbxCommandHistory->append("R: " + Response);
+    //ReadTimer->start(100);
+
     return Response;
 }
 
@@ -235,14 +261,16 @@ void MainWindow::on_btnConnect_released()
         serial.setFlowControl(QSerialPort::NoFlowControl);
         if(serial.open(QIODevice::ReadWrite)){
                 qDebug() << "Connection Successful";
-                serial.waitForReadyRead(1000);
+                ReadTimer->start(10);
+                MachineReady=true;
+                /*serial.waitForReadyRead(1000);
                 QByteArray data;
                 while(serial.canReadLine())
                 {
                     data = serial.readLine();
                     ui->tbxCommandHistory->append("R: " + data);
                     serial.waitForReadyRead(1000);
-                }
+                }*/
                 ui->btnConnect->setText("Disconnect");
         }else {
                 qDebug() << "Connection Failed";
@@ -372,7 +400,7 @@ void MainWindow::on_txtFileName_textEdited(const QString &arg1)
 
 void MainWindow::on_btnRun_released()
 {
-    timer->start(1000);
+    StreamTimer->start(1);
     /*int lineNumber = GCode.size();
     QString Response;
     for(int i=0;i<=lineNumber-1;i++)
@@ -407,30 +435,48 @@ void MainWindow::on_pbTest_released()
 {
 
     // msec
-    timer->start(1000);
+    lineNumber=0;
+    StreamTimer->start(1);
 }
 
 void MainWindow::MyTimerSlot()
 {
-    qDebug() << "Timer...";
-    QString Response;
+    QString Response = "";
+
+
     int LastLine = GCode.size();
-    if(lineNumber<=LastLine-1){
-        //WaitForMachineReady();
-        Response=SendGCode(GCode[lineNumber]);
-        Response.clear();
-        lineNumber++;
+    if(MachineReady){
+        if(lineNumber<=LastLine-1){
+            //WaitForMachineReady();
+            SendGCode(GCode[lineNumber]);
+            lineNumber++;
+        }
+        else
+            StreamTimer->stop();
     }
-    else
-        timer->stop();
 }
 
 void MainWindow::on_btnTest2_released()
 {
-timer->stop();
+StreamTimer->stop();
 }
 
 void MainWindow::on_pbFileBrowse_2_released()
 {
     MainWindow::on_pbFileBrowse_released();
+}
+
+void MainWindow::on_btnPause_released()
+{
+    StreamTimer->stop();
+}
+
+void MainWindow::on_btnResume_released()
+{
+    StreamTimer->start(1);
+}
+
+void MainWindow::on_btnSpindleOn_released()
+{
+    SendGCode("M106");
 }

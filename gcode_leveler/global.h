@@ -46,6 +46,8 @@ float DeltaZ = 0;
 bool RelativeEnabled = 0;
 bool RelativeOverride = 0;
 int lineNumber=0;
+QString Response ="";
+bool MachineReady =0;
 /*//////////////////////*/
 
 //Program resources
