@@ -57,22 +57,23 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::ReceiveData()
-{   QByteArray data="";
+{   QString data="";
     if(serial.canReadLine()){
         data = serial.readLine();
+        data.remove("\n");
         if (data!="")
         {
             ui->tbxCommandHistory->append("R: " + data);
             Response=data;
-            if (data=="ok\n"){
+            if (data=="ok"){
                 MachineReady=true;
             }
             if (Response.contains("endstops hit")){
                 QStringList ResponseParts = Response.split(":");
                 QString Meas = ResponseParts.at(3);
-                Meas.remove('\n');
                 Measurement = Meas.toFloat();
                 qDebug() << Measurement;
+                MeasRecorded=false;
             }
         }
     }
@@ -95,19 +96,18 @@ void MainWindow::MyTimerSlot()
     }
 }
 
+bool Reverse=0; //0 is forward, 1 is Reverse
 void MainWindow::ProbeStream()
 {
-    float IncX = SizeX/PointsX;
-    float IncY = SizeY/PointsY;
-    static int ProbeState;
-    static int X; //X coordinate in probing array
-    static int Y; //Y coordinate in probing array
+    float IncX = SizeX/(PointsX-1);
+    float IncY = SizeY/(PointsY-1);
     //We have 3 states to handle - movement, probing, and recording data.
     //Assume that the probe is at (0,0,0)
-    if (ProbeState=0){//Initialize values
-        ProbeState = 3; //0 = XY Movement, 1 = Downward Movement (probe), 2 = Record Data, 3 = Upward Movement
-        X=0;
-        Y=0;
+    if (ProbeState==0){//Initialize values
+        ProbeState = 2; //0 = XY Movement, 1 = Downward Movement (probe), 2 = Record Data, 3 = Upward Movement
+        ProbeX=0;
+        ProbeY=0;
+        MeasRecorded=false;
     }
     //Before we can do anything make sure the machine is ready
     if(MachineReady){
@@ -115,34 +115,63 @@ void MainWindow::ProbeStream()
             case 1://XY Movement
             {
                 //Check if X Motion is necissary
-                if (X>=PointsX-1)
+                //Detect if we're done
+                if((((ProbeX == PointsX-1) & ~Reverse)|((ProbeX == 0) & Reverse)) & (ProbeY == PointsY-1))
                 {
-                    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-                    SendGCode(Movement + " X"+ IncX +" F" + MovementSpeed);
-                    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+                    //Leave this timer - We're all done probing!
+                    ProbeState=0;
+                    ProbeTimer->stop();
+                    break;
                 }
-                break;
+                //Detect if we've reached an edge
+                if(((Reverse==0) & (ProbeX == PointsX-1))|((Reverse==1) & (ProbeX==0)))
+                {
+                    //Let's move in the Y Direction
+                    RelativeSendGCode(Movement + " Y"+ QByteArray::number(IncY) +" F" + QByteArray::number(MovementSpeed));
+                    ProbeState=2;
+                    ProbeY++;
+                    Reverse=!Reverse;
+                    break;
+                }
+                //If we get to this point then we either need to go left or right on the X axis
+                if(Reverse)
+                {
+                    RelativeSendGCode(Movement + " X-"+ QByteArray::number(IncX) +" F" + QByteArray::number(MovementSpeed));
+                    ProbeX--;
+                    ProbeState=2;
+                    break;
+                }
+                if(!Reverse)
+                {
+                    RelativeSendGCode(Movement + " X"+ QByteArray::number(IncX) +" F" + QByteArray::number(MovementSpeed));
+                    ProbeX++;
+                    ProbeState=2;
+                    break;
+                }
             }
             case 2://Probe
             {
-                if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-                SendGCode(Movement + " Z-10 F" + ProbingSpeed);
-                if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+                RelativeSendGCode(Movement + " Z-10 F" + QByteArray::number(ProbingSpeed));
+                ProbeState=3;
             }
             break;
             case 3://Record Data
             {
-                ProbeState=4;
+                if (!MeasRecorded)
+                {
+                    qDebug() << Measurement;
+                    MeasRecorded=true;
+                    ProbeState=4;
+                }
                 break;
             }
             case 4://Upward Movement
             {
-                if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-                SendGCode(Movement + " Z5 F" + ProbingSpeed);
-                if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+                RelativeSendGCode(Movement + " Z5 F" + QByteArray::number(ProbingSpeed));
                 ProbeState=1;
                 break;
             }
+        default: ProbeState=2;
         }
     }
 }
@@ -178,6 +207,12 @@ void PromptProbeDataClear(){
 
         }
     }
+}
+
+void MainWindow::RelativeSendGCode(QString Command){
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+    SendGCode(Command);
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 QString MainWindow::SendGCode(QString Command){
@@ -380,9 +415,9 @@ void MainWindow::on_btnIncY_released()
 
 void MainWindow::on_btnIncZ_released()
 {
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-    SendGCode(Movement + " Z" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    //if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+    RelativeSendGCode(Movement + " Z" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    //if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnDecX_released()
@@ -407,9 +442,9 @@ void MainWindow::on_btnDecY_released()
 
 void MainWindow::on_btnDecZ_released()
 {
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-    SendGCode(Movement + " Z-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    //if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+    RelativeSendGCode(Movement + " Z-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
+    //if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_txtIncrement_textChanged(const QString &arg1)

@@ -16,13 +16,17 @@ QString Baud;
 QString ConnectionStatus;
 float SizeX = 20;
 float SizeY = 20;
-int PointsX = 3;
-int PointsY = 3;
+int PointsX = 4;
+int PointsY = 4;
 float Measurement = 0;
+bool MeasRecorded = false;
+int ProbeState=0;
+int ProbeX=0; //X coordinate in probing array
+int ProbeY=0; //Y coordinate in probing array
 float Increment = 10;
 float Feedrate = 500;
 float MovementSpeed = 500;
-float ProbingSpeed = 100;
+float ProbingSpeed = 500;
 float TravelClearance = 5;
 bool CompensateBacklash = true;
 float BacklashX = 0;

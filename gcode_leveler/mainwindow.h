@@ -19,6 +19,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QString SendGCode(QString Command);
+    void RelativeSendGCode(QString Command);
     void ProbeSequence();
     void WaitForMachineReady();
     void MyTimer();
