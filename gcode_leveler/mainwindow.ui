@@ -472,7 +472,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tabMachineControl">
      <attribute name="title">
@@ -650,7 +650,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>200</string>
+       <string>500</string>
       </property>
      </widget>
      <widget class="QLabel" name="lblXP">

@@ -47,6 +47,13 @@ MainWindow::MainWindow(QWidget *parent) :
     // setup signal and slot
     connect(ReadTimer, SIGNAL(timeout()),
           this, SLOT(ReceiveData()));
+
+    // create a stream timer
+    ProbeTimer = new QTimer(this);
+
+    // setup signal and slot
+    connect(ProbeTimer, SIGNAL(timeout()),
+          this, SLOT(ProbeStream()));
 }
 
 void MainWindow::ReceiveData()
@@ -59,11 +66,87 @@ void MainWindow::ReceiveData()
             Response=data;
             if (data=="ok\n"){
                 MachineReady=true;
-                qDebug()<<"Machine Ready";
+            }
+            if (Response.contains("endstops hit")){
+                QStringList ResponseParts = Response.split(":");
+                QString Meas = ResponseParts.at(3);
+                Meas.remove('\n');
+                Measurement = Meas.toFloat();
+                qDebug() << Measurement;
             }
         }
     }
 }
+
+void MainWindow::MyTimerSlot()
+{
+    QString Response = "";
+
+
+    int LastLine = GCode.size();
+    if(MachineReady){
+        if(lineNumber<=LastLine-1){
+            //WaitForMachineReady();
+            SendGCode(GCode[lineNumber]);
+            lineNumber++;
+        }
+        else
+            StreamTimer->stop();
+    }
+}
+
+void MainWindow::ProbeStream()
+{
+    float IncX = SizeX/PointsX;
+    float IncY = SizeY/PointsY;
+    static int ProbeState;
+    static int X; //X coordinate in probing array
+    static int Y; //Y coordinate in probing array
+    //We have 3 states to handle - movement, probing, and recording data.
+    //Assume that the probe is at (0,0,0)
+    if (ProbeState=0){//Initialize values
+        ProbeState = 3; //0 = XY Movement, 1 = Downward Movement (probe), 2 = Record Data, 3 = Upward Movement
+        X=0;
+        Y=0;
+    }
+    //Before we can do anything make sure the machine is ready
+    if(MachineReady){
+        switch(ProbeState){
+            case 1://XY Movement
+            {
+                //Check if X Motion is necissary
+                if (X>=PointsX-1)
+                {
+                    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+                    SendGCode(Movement + " X"+ IncX +" F" + MovementSpeed);
+                    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+                }
+                break;
+            }
+            case 2://Probe
+            {
+                if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+                SendGCode(Movement + " Z-10 F" + ProbingSpeed);
+                if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+            }
+            break;
+            case 3://Record Data
+            {
+                ProbeState=4;
+                break;
+            }
+            case 4://Upward Movement
+            {
+                if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+                SendGCode(Movement + " Z5 F" + ProbingSpeed);
+                if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+                ProbeState=1;
+                break;
+            }
+        }
+    }
+}
+
 MainWindow::~MainWindow()
 {
     //serial.close();
@@ -102,7 +185,7 @@ QString MainWindow::SendGCode(QString Command){
     QByteArray CommandBytes = Command.toLocal8Bit(); //Make it so the string will play with serial
     if(serial.isOpen()){
         if (Command=="")
-            return "";//A blank space will cause problems
+            return "";//A blank space will cause problems because there is no response
         MachineReady =false;
         if (Command.contains("G90")&~RelativeOverride){
             //We are in absoloute movement
@@ -400,6 +483,7 @@ void MainWindow::on_txtFileName_textEdited(const QString &arg1)
 
 void MainWindow::on_btnRun_released()
 {
+    lineNumber=0;
     StreamTimer->start(1);
     /*int lineNumber = GCode.size();
     QString Response;
@@ -433,27 +517,8 @@ void MainWindow::on_btnRun_released()
 
 void MainWindow::on_pbTest_released()
 {
-
-    // msec
     lineNumber=0;
     StreamTimer->start(1);
-}
-
-void MainWindow::MyTimerSlot()
-{
-    QString Response = "";
-
-
-    int LastLine = GCode.size();
-    if(MachineReady){
-        if(lineNumber<=LastLine-1){
-            //WaitForMachineReady();
-            SendGCode(GCode[lineNumber]);
-            lineNumber++;
-        }
-        else
-            StreamTimer->stop();
-    }
 }
 
 void MainWindow::on_btnTest2_released()
@@ -479,4 +544,63 @@ void MainWindow::on_btnResume_released()
 void MainWindow::on_btnSpindleOn_released()
 {
     SendGCode("M106");
+}
+
+void MainWindow::on_btnStartProbe_released()
+{
+    ProbeTimer->start(1);
+    //Prompt to append G-Code
+    //If Yes - Append G-Code
+    //If No - do not append, but keep probe data
+}
+
+void MainWindow::ProbeSequence()
+{
+    float IncX = SizeX/PointsX;
+    float IncY = SizeY/PointsY;
+    float Measurement;
+    //Create Array of XxY
+    int Heights[PointsX][PointsY];
+    //Before Movement - enter relative movement
+    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+    //For all Y elements
+    for(int i=0; i<PointsY; i++)
+    {
+        //For all X elements
+        for(int j=0; j<PointsX; j++)
+        {
+            //Probe Height
+            SendGCode(Movement + " Z-10 F" + ProbingSpeed);
+            //Record Value at XY
+            while(Response==""|Response=="ok\n")
+            {
+                //echo:endstops hit:  Z:
+                //Do Nothing till a response is received
+                //sleep(5);
+            }
+            QStringList ResponseParts = Response.split(" ");
+            QString Meas = ResponseParts.filter(":").at(0);
+            Meas = Meas.mid(1);
+            Measurement = Meas.toFloat();
+            Response="";
+            qDebug()<<Measurement;
+            //Move Back Up
+            SendGCode(Movement + " Z5 F" + ProbingSpeed);
+            //Move Delta X
+            SendGCode(Movement + " X"+ IncX +" F" + MovementSpeed);
+        }
+        //Move Delta Y
+        SendGCode(Movement + " Y"+ IncY +" F" + MovementSpeed);
+    }
+    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+}
+
+void MainWindow::on_btnSpindleOff_released()
+{
+    SendGCode("M107");
+}
+
+void MainWindow::on_btnAbortProbe_released()
+{
+    ProbeTimer->stop();
 }

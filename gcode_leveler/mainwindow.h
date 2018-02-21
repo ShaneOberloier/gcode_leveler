@@ -19,9 +19,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     QString SendGCode(QString Command);
+    void ProbeSequence();
     void WaitForMachineReady();
     void MyTimer();
     QTimer *StreamTimer;
+    QTimer *ProbeTimer;
     QTimer *ReadTimer;
 
 
@@ -80,11 +82,19 @@ private slots:
 
     void ReceiveData();
 
+    void ProbeStream();
+
     void on_btnPause_released();
 
     void on_btnResume_released();
 
     void on_btnSpindleOn_released();
+
+    void on_btnStartProbe_released();
+
+    void on_btnSpindleOff_released();
+
+    void on_btnAbortProbe_released();
 
 private:
     Ui::MainWindow *ui;
