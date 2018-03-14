@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>450</width>
-    <height>350</height>
+    <height>360</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>450</width>
-    <height>350</height>
+    <height>360</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>450</width>
-    <height>350</height>
+    <height>360</height>
    </size>
   </property>
   <property name="palette">
@@ -472,7 +472,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tabMachineControl">
      <attribute name="title">
@@ -1724,6 +1724,19 @@ p, li { white-space: pre-wrap; }
       </property>
      </widget>
     </widget>
+   </widget>
+   <widget class="QLabel" name="txtStatus">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>340</y>
+      <width>431</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>X: 0, Y: 0, Z:0</string>
+    </property>
    </widget>
   </widget>
  </widget>

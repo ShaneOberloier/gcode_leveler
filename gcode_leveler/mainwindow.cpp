@@ -54,6 +54,13 @@ MainWindow::MainWindow(QWidget *parent) :
     // setup signal and slot
     connect(ProbeTimer, SIGNAL(timeout()),
           this, SLOT(ProbeStream()));
+
+    // create a stream timer
+    BacklashTimer = new QTimer(this);
+
+    // setup signal and slot
+    connect(BacklashTimer, SIGNAL(timeout()),
+          this, SLOT(BacklashSlot()));
 }
 
 void MainWindow::ReceiveData()
@@ -64,10 +71,12 @@ void MainWindow::ReceiveData()
         if (data!="")
         {
             ui->tbxCommandHistory->append("R: " + data);
-            Response=data;
+
             if (data=="ok"){
                 MachineReady=true;
+                return;
             }
+            Response=data;//We don't want to save "ok" in the response - to keep meaningful data.
             if (Response.contains("endstops hit")){
                 QStringList ResponseParts = Response.split(":");
                 QString Meas = ResponseParts.at(3);
@@ -85,9 +94,8 @@ void MainWindow::MyTimerSlot()
 
 
     int LastLine = GCode.size();
-    if(MachineReady){
+    if(MachineReady & CompensationState==0){
         if(lineNumber<=LastLine-1){
-            //WaitForMachineReady();
             SendGCode(GCode[lineNumber]);
             lineNumber++;
         }
@@ -110,7 +118,7 @@ void MainWindow::ProbeStream()
         MeasRecorded=false;
     }
     //Before we can do anything make sure the machine is ready
-    if(MachineReady){
+    if(MachineReady & CompensationState==0){
         switch(ProbeState){
             case 1://XY Movement
             {
@@ -120,6 +128,7 @@ void MainWindow::ProbeStream()
                 {
                     //Leave this timer - We're all done probing!
                     ProbeState=0;
+                    //Spit out Matrix data for debug
                     ProbeTimer->stop();
                     break;
                 }
@@ -161,6 +170,7 @@ void MainWindow::ProbeStream()
                 {
                     qDebug() << Measurement;
                     MeasRecorded=true;
+                    MeasurementArray[ProbeX][ProbeY] = Measurement;
                     ProbeState=4;
                 }
                 break;
@@ -176,6 +186,58 @@ void MainWindow::ProbeStream()
     }
 }
 
+void MainWindow::BacklashSlot()
+{
+    ReceiveData();
+    //Must wait for Machine Ready at every step
+    if (MachineReady)
+    {
+        switch(CompensationState){
+            case 0:
+            {
+                BacklashTimer->stop();
+                CommandMemory="";
+                return;
+            }
+            case 1: //Compensate for backlash in each relevant direction (1)
+            {
+                Response="";
+                serial.write("M114\n");
+                while (Response=="")//We HAVE to wait for the measurement
+                {
+                    serial.waitForReadyRead(1000);
+                    ReceiveData();
+                }
+                    //MachineReady = false;
+                    qDebug() << Response;
+                    //X+
+                    //X-
+                    //Y+
+                    //Y-
+                    //Z+
+                    //Z-
+                    CompensationState=2;
+                return;
+            }
+            case 2: //Set position to measured location. (2)
+            {
+                //MachineReady = false;
+                CompensationState =3;
+                return;
+            }
+            case 3://Send original movement command (3)
+            {
+                MachineReady = false;
+                serial.write(CommandMemory.toLocal8Bit() + "\n"); //Send command & append new line characer
+                ui->tbxCommandHistory->append("S: " + CommandMemory); //Add the command to the history
+                UpdateStatus();
+                CompensationState = 0;
+                return;
+            }
+        }
+    }
+}
+
 MainWindow::~MainWindow()
 {
     //serial.close();
@@ -184,6 +246,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    for(int i=0; i < PointsY; ++i)
+    {
+        delete [] MeasurementArray[i];
+    }
+    delete [] MeasurementArray;
     on_btnRest_released();//This is the command to implement the rest procedure
     serial.close();//Close the serial communication so it may be picked up later
     delete ui;
@@ -219,9 +286,16 @@ QString MainWindow::SendGCode(QString Command){
     //QString Response; //What will be read back from the machine
     QByteArray CommandBytes = Command.toLocal8Bit(); //Make it so the string will play with serial
     if(serial.isOpen()){
+        //Make sure we didn't skip a backlash compensation
+        while(CompensationState != 0)
+        {
+            BacklashSlot();
+        }
+        MachineReady =false;
         if (Command=="")
             return "";//A blank space will cause problems because there is no response
-        MachineReady =false;
+        if (Command.contains(";"))
+            return "";//Don't send comments
         if (Command.contains("G90")&~RelativeOverride){
             //We are in absoloute movement
             RelativeEnabled = false;
@@ -229,6 +303,24 @@ QString MainWindow::SendGCode(QString Command){
         if (Command.contains("G91")&~RelativeOverride){
             //We are in relative movement
             RelativeEnabled = true;
+        }
+        if (Command.contains("G92")){
+            QStringList CommandParts = Command.split(" ");
+            if (Command.contains("X"))
+            {
+                  QString Xpos = CommandParts.filter("X").at(0);
+                  PosX = Xpos.mid(1).toFloat();
+            }
+            if (Command.contains("Y"))
+            {
+                  QString Ypos = CommandParts.filter("Y").at(0);
+                  PosY = Ypos.mid(1).toFloat();
+            }
+            if (Command.contains("Z"))
+            {
+                  QString Zpos = CommandParts.filter("Z").at(0);
+                  PosZ = Zpos.mid(1).toFloat();
+            }
         }
         if(CompensateBacklash){
             //Check and see if this is a motion command. If it is, then add backlash error.
@@ -246,13 +338,16 @@ QString MainWindow::SendGCode(QString Command){
                       if ((XposVal > PosX) && (DeltaX < 0)){
                         //Compensate with positive backlash
                         qDebug()<<"Compensating for X Backlash";
-
+                        BacklashDirections[0]=true;
+                        CompensationState=1;
                         DeltaX = XposVal - PosX;
                         PosX = XposVal;
                       }
                        else if ((XposVal < PosX) && (DeltaX >= 0)){
                         //Compensate with positive backlash
                         qDebug()<<"Compensating for X Backlash";
+                        BacklashDirections[1]=true;
+                        CompensationState=1;
                         DeltaX = XposVal - PosX;
                         PosX = XposVal;
                       }
@@ -272,12 +367,16 @@ QString MainWindow::SendGCode(QString Command){
                     if ((YposVal > PosY) && (DeltaY < 0)){
                       //Compensate with positive backlash
                       qDebug()<<"Compensating for Y Backlash";
+                      BacklashDirections[2]=true;
+                      CompensationState=1;
                       DeltaY = YposVal - PosY;
                       PosY = YposVal;
                     }
                      else if ((YposVal < PosY) && (DeltaY >= 0)){
                       //Compensate with positive backlash
                       qDebug()<<"Compensating for Y Backlash";
+                      BacklashDirections[3]=true;
+                      CompensationState=1;
                       DeltaY = YposVal - PosY;
                       PosY = YposVal;
                     }
@@ -297,12 +396,16 @@ QString MainWindow::SendGCode(QString Command){
                     if ((ZposVal > PosZ) && (DeltaZ < 0)){
                       //Compensate with positive backlash
                       qDebug()<<"Compensating for Z Backlash";
+                      BacklashDirections[4]=true;
+                      CompensationState=1;
                       DeltaZ = ZposVal - PosZ;
                       PosZ = ZposVal;
                     }
                      else if ((ZposVal < PosZ) && (DeltaZ >= 0)){
                       //Compensate with positive backlash
                       qDebug()<<"Compensating for Z Backlash";
+                      BacklashDirections[5]=true;
+                      CompensationState=1;
                       DeltaZ = ZposVal - PosZ;
                       PosZ = ZposVal;
                     }
@@ -311,6 +414,15 @@ QString MainWindow::SendGCode(QString Command){
                         PosZ = ZposVal;
                     }
                 }
+            }
+            //Call for backlash compensation if necissary.
+            if (CompensationState != 0)
+            {
+                //Turn on the backlash compensator.
+                BacklashTimer->start(1);
+                CommandMemory=Command;
+                MachineReady =true;
+                return "";
             }
         }
         serial.write(CommandBytes + "\n"); //Send command & append new line characer
@@ -324,7 +436,7 @@ QString MainWindow::SendGCode(QString Command){
     //Response = serial.readAll(); //Read the response from the machine
     //ui->tbxCommandHistory->append("R: " + Response);
     //ReadTimer->start(100);
-
+    UpdateStatus();
     return Response;
 }
 
@@ -356,6 +468,10 @@ void MainWindow::on_pbFileBrowse_released()
 void MainWindow::on_txtFileName_returnPressed()
 {
     PromptProbeDataClear();
+}
+void MainWindow::UpdateStatus()
+{
+    ui->txtStatus->setText("X:" + QString::number(PosX) + " Y:" + QString::number(PosY) + " Z:" + QString::number(PosZ) );
 }
 
 void MainWindow::on_btnSendCommand_released()
@@ -396,55 +512,33 @@ void MainWindow::on_btnConnect_released()
     }
 }
 
-void MainWindow::WaitForMachineReady()
-{
-    QString Response = "";
-    while(Response==""){
-        serial.write("G1\n");
-        serial.waitForReadyRead(500);
-        Response = serial.readAll(); //Read the response from the machine
-    }
-}
-
 void MainWindow::on_btnIncY_released()
 {
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-    SendGCode(Movement + " Y" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    RelativeSendGCode(Movement + " Y" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
 }
 
 void MainWindow::on_btnIncZ_released()
 {
-    //if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     RelativeSendGCode(Movement + " Z" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    //if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnDecX_released()
 {
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-    SendGCode(Movement + " X-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    RelativeSendGCode(Movement + " X-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
 }
 
 void MainWindow::on_btnIncX_released()
 {
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-    SendGCode(Movement + " X" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    RelativeSendGCode(Movement + " X" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
 }
 void MainWindow::on_btnDecY_released()
 {
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
-    SendGCode(Movement + " Y-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    RelativeSendGCode(Movement + " Y-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
 }
 
 void MainWindow::on_btnDecZ_released()
 {
-    //if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
     RelativeSendGCode(Movement + " Z-" + QByteArray::number(Increment) + " F" + QByteArray::number(Feedrate));
-    //if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_txtIncrement_textChanged(const QString &arg1)
@@ -520,45 +614,22 @@ void MainWindow::on_btnRun_released()
 {
     lineNumber=0;
     StreamTimer->start(1);
-    /*int lineNumber = GCode.size();
-    QString Response;
-    for(int i=0;i<=lineNumber-1;i++)
-    {
-        WaitForMachineReady();
-        Response=SendGCode(GCode[i]);
-        //while(Response=="")
-        //{
-        //    qDebug()<<"OH NO";
-        //    Response=SendGCode("G1");
-        //    qDebug()<<Response;
-        //}
-        Response.clear();
-    }*/
 }
-
-/*void MainWindow::StreamGCode()
-{
-    QString Response;
-    int LastLine = GCode.size();
-    if(lineNumber<=LastLine-1){
-        WaitForMachineReady();
-        Response=SendGCode(GCode[i]);
-        Response.clear();
-        lineNumber++;
-    }
-    else
-        timer->stop();
-}*/
 
 void MainWindow::on_pbTest_released()
 {
-    lineNumber=0;
-    StreamTimer->start(1);
+    UpdateStatus();
 }
 
 void MainWindow::on_btnTest2_released()
 {
-StreamTimer->stop();
+    Response="";
+    serial.write("M114\n");
+    while (Response=="")
+    {
+        serial.waitForReadyRead(1000);
+        ReceiveData();
+    }
 }
 
 void MainWindow::on_pbFileBrowse_2_released()
@@ -584,6 +655,11 @@ void MainWindow::on_btnSpindleOn_released()
 void MainWindow::on_btnStartProbe_released()
 {
     ProbeTimer->start(1);
+    MeasurementArray=new float*[PointsY];
+    for (int i=0; i < PointsY; ++i)
+    {
+        MeasurementArray[i]=new float[PointsX];
+    }
     //Prompt to append G-Code
     //If Yes - Append G-Code
     //If No - do not append, but keep probe data
@@ -638,4 +714,33 @@ void MainWindow::on_btnSpindleOff_released()
 void MainWindow::on_btnAbortProbe_released()
 {
     ProbeTimer->stop();
+    for(int i=0; i < PointsY; ++i)
+    {
+        delete [] MeasurementArray[i];
+    }
+    delete [] MeasurementArray;
+}
+
+void MainWindow::on_txtSizeX_textChanged(const QString &arg1)
+{
+    if(!(ProbeTimer->isActive()))
+        SizeX = ui->txtSizeX->text().toFloat();
+}
+
+void MainWindow::on_txtSizeY_textChanged(const QString &arg1)
+{
+    if(!(ProbeTimer->isActive()))
+        SizeY = ui->txtSizeY->text().toFloat();
+}
+
+void MainWindow::on_txtPointsX_textChanged(const QString &arg1)
+{
+    if(!(ProbeTimer->isActive()))
+        PointsX = ui->txtPointsX->text().toInt();
+}
+
+void MainWindow::on_txtPointsY_textChanged(const QString &arg1)
+{
+    if(!(ProbeTimer->isActive()))
+        PointsY = ui->txtPointsY->text().toInt();
 }

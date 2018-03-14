@@ -21,11 +21,11 @@ public:
     QString SendGCode(QString Command);
     void RelativeSendGCode(QString Command);
     void ProbeSequence();
-    void WaitForMachineReady();
     void MyTimer();
     QTimer *StreamTimer;
     QTimer *ProbeTimer;
     QTimer *ReadTimer;
+    QTimer *BacklashTimer;
 
 
 private slots:
@@ -85,6 +85,8 @@ private slots:
 
     void ProbeStream();
 
+    void BacklashSlot();
+
     void on_btnPause_released();
 
     void on_btnResume_released();
@@ -96,6 +98,16 @@ private slots:
     void on_btnSpindleOff_released();
 
     void on_btnAbortProbe_released();
+
+    void on_txtSizeX_textChanged(const QString &arg1);
+
+    void on_txtSizeY_textChanged(const QString &arg1);
+
+    void on_txtPointsX_textChanged(const QString &arg1);
+
+    void on_txtPointsY_textChanged(const QString &arg1);
+
+    void UpdateStatus();
 
 private:
     Ui::MainWindow *ui;

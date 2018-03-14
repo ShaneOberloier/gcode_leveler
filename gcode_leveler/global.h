@@ -16,19 +16,22 @@ QString Baud;
 QString ConnectionStatus;
 float SizeX = 20;
 float SizeY = 20;
-int PointsX = 4;
-int PointsY = 4;
+int PointsX = 8;
+int PointsY = 8;
 float Measurement = 0;
 bool MeasRecorded = false;
 int ProbeState=0;
 int ProbeX=0; //X coordinate in probing array
 int ProbeY=0; //Y coordinate in probing array
+float **MeasurementArray;
 float Increment = 10;
 float Feedrate = 500;
 float MovementSpeed = 500;
-float ProbingSpeed = 500;
+float ProbingSpeed = 200;
 float TravelClearance = 5;
 bool CompensateBacklash = true;
+int CompensationState = 0;
+bool BacklashDirections[6] ={0,0,0,0,0,0};
 float BacklashX = 0;
 float BacklashY = 0;
 float BacklashZ = 0;
@@ -52,6 +55,7 @@ bool RelativeEnabled = 0;
 bool RelativeOverride = 0;
 int lineNumber=0;
 QString Response ="";
+QString CommandMemory="";
 bool MachineReady =0;
 /*//////////////////////*/
 
