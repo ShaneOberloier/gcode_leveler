@@ -201,22 +201,76 @@ void MainWindow::BacklashSlot()
             }
             case 1: //Compensate for backlash in each relevant direction (1)
             {
+                if((RelativeEnabled==0)&(RelativeOverride==0)){
+                    serial.write("G91\n");
+                    MachineReady=false;
+                    ui->tbxCommandHistory->append("S: G91"); //Add the command to the history
+                    while (!MachineReady)//We HAVE to wait for the measurement
+                    {
+                        serial.waitForReadyRead(10);
+                        ReceiveData();
+                    }
+                }
                 Response="";
                 serial.write("M114\n");
+                MachineReady=false;
+                ui->tbxCommandHistory->append("S: M114"); //Add the command to the history
                 while (Response=="")//We HAVE to wait for the measurement
                 {
-                    serial.waitForReadyRead(1000);
+                    serial.waitForReadyRead(10);
                     ReceiveData();
                 }
-                    //MachineReady = false;
                     qDebug() << Response;
+                    QString BacklashCommand="G0";
                     //X+
+                    if (BacklashDirections[0])
+                    {
+                        BacklashCommand+=" X" + QString::number(BacklashX);;
+                        BacklashDirections[0]=0;
+                    }
                     //X-
+                    if (BacklashDirections[1])
+                    {
+                            BacklashCommand+=" X-" + QString::number(BacklashX);;
+                            BacklashDirections[1]=0;
+                    }
                     //Y+
+                    if (BacklashDirections[2])
+                    {
+                            BacklashCommand+=" Y" + QString::number(BacklashY);
+                            BacklashDirections[2]=0;
+                    }
                     //Y-
-                    //Z+
-                    //Z-
+                    if (BacklashDirections[3])
+                    {
+                            BacklashCommand+=" Y-" + QString::number(BacklashY);
+                            BacklashDirections[3]=0;
+                    }
+                    //Y+
+                    if (BacklashDirections[4])
+                    {
+                            BacklashCommand+=" Z" + QString::number(BacklashZ);;
+                            BacklashDirections[4]=0;
+                    }
+                    //Y-
+                    if (BacklashDirections[5])
+                    {
+                            BacklashCommand+=" Z-" + QString::number(BacklashZ);;
+                            BacklashDirections[5]=0;
+                    }
+                    qDebug()<<BacklashCommand;
                     CompensationState=2;
+
+                    if((RelativeEnabled==0)&(RelativeOverride==0)){
+                        serial.write("G90\n");
+                        MachineReady=false;
+                        ui->tbxCommandHistory->append("S: G90"); //Add the command to the history
+                        while (!MachineReady)//We HAVE to wait for the measurement
+                        {
+                            serial.waitForReadyRead(10);
+                            ReceiveData();
+                        }
+                    }
                 return;
             }
             case 2: //Set position to measured location. (2)
@@ -277,9 +331,9 @@ void PromptProbeDataClear(){
 }
 
 void MainWindow::RelativeSendGCode(QString Command){
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+    if(RelativeEnabled==0){SendGCode("G91"); RelativeOverride=1;}
     SendGCode(Command);
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    if(RelativeEnabled==0){SendGCode("G90"); RelativeOverride=0;}
 }
 
 QString MainWindow::SendGCode(QString Command){
@@ -293,14 +347,19 @@ QString MainWindow::SendGCode(QString Command){
         }
         MachineReady =false;
         if (Command=="")
+        {
+            MachineReady =true;
             return "";//A blank space will cause problems because there is no response
+        }
         if (Command.contains(";"))
+        {   MachineReady =true;
             return "";//Don't send comments
-        if (Command.contains("G90")&~RelativeOverride){
+        }
+        if (Command.contains("G90")&(RelativeOverride==1)){
             //We are in absoloute movement
             RelativeEnabled = false;
         }
-        if (Command.contains("G91")&~RelativeOverride){
+        if (Command.contains("G91")&(RelativeOverride==1)){
             //We are in relative movement
             RelativeEnabled = true;
         }
@@ -332,7 +391,7 @@ QString MainWindow::SendGCode(QString Command){
                       Xpos = Xpos.mid(1);
                       float XposVal = Xpos.toFloat();
                       qDebug()<<"X Destination: "<<XposVal;
-                      if (RelativeEnabled){
+                      if (RelativeEnabled|RelativeOverride){
                           XposVal = XposVal + PosX;
                       }
                       if ((XposVal > PosX) && (DeltaX < 0)){
@@ -361,7 +420,7 @@ QString MainWindow::SendGCode(QString Command){
                     Ypos = Ypos.mid(1);
                     float YposVal = Ypos.toFloat();
                     qDebug()<<"Y Destination: "<<YposVal;
-                    if (RelativeEnabled){
+                    if (RelativeEnabled|RelativeOverride){
                         YposVal = YposVal + PosY;
                     }
                     if ((YposVal > PosY) && (DeltaY < 0)){
@@ -390,7 +449,7 @@ QString MainWindow::SendGCode(QString Command){
                     Zpos = Zpos.mid(1);
                     float ZposVal = Zpos.toFloat();
                     qDebug()<<"Z Destination: "<<ZposVal;
-                    if (RelativeEnabled){
+                    if (RelativeEnabled|RelativeOverride){
                         ZposVal = ZposVal + PosZ;
                     }
                     if ((ZposVal > PosZ) && (DeltaZ < 0)){
@@ -618,7 +677,7 @@ void MainWindow::on_btnRun_released()
 
 void MainWindow::on_pbTest_released()
 {
-    UpdateStatus();
+    ui->tbxCommandHistory->clear();
 }
 
 void MainWindow::on_btnTest2_released()
@@ -673,7 +732,7 @@ void MainWindow::ProbeSequence()
     //Create Array of XxY
     int Heights[PointsX][PointsY];
     //Before Movement - enter relative movement
-    if(~RelativeEnabled){SendGCode("G91"); RelativeOverride=1;}
+    if(RelativeEnabled==0){SendGCode("G91"); RelativeOverride=1;}
     //For all Y elements
     for(int i=0; i<PointsY; i++)
     {
@@ -703,7 +762,7 @@ void MainWindow::ProbeSequence()
         //Move Delta Y
         SendGCode(Movement + " Y"+ IncY +" F" + MovementSpeed);
     }
-    if(~RelativeEnabled){SendGCode("G90"); RelativeOverride=0;}
+    if(RelativeEnabled==0){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnSpindleOff_released()
