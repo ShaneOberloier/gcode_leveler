@@ -77,12 +77,34 @@ void MainWindow::ReceiveData()
                 return;
             }
             Response=data;//We don't want to save "ok" in the response - to keep meaningful data.
+            if (Response.contains("Count"))
+            {
+                QStringList PositionParts = Response.split(" ");
+                MeasX=PositionParts[0];
+                MeasX.remove("X:");
+                MeasY=PositionParts[1];
+                MeasY.remove("Y:");
+                MeasZ=PositionParts[2];
+                MeasZ.remove("Z:");
+            }
             if (Response.contains("endstops hit")){
                 QStringList ResponseParts = Response.split(":");
                 QString Meas = ResponseParts.at(3);
                 Measurement = Meas.toFloat();
-                qDebug() << Measurement;
+                //qDebug() << Measurement;
                 MeasRecorded=false;
+
+                serial.write("G92 Z" + Meas.toLocal8Bit() + "\n");
+                qDebug()<< "G92 Z" + Meas.toLocal8Bit();
+                MachineReady=false;
+                PosZ=Meas.toFloat();
+                UpdateStatus();
+                ui->tbxCommandHistory->append("G92 Z" + Meas); //Add the command to the history
+                while (MachineReady==false)//We HAVE to wait for the measurement
+                {
+                    serial.waitForReadyRead(10);
+                    ReceiveData();
+                }
             }
         }
     }
@@ -205,7 +227,7 @@ void MainWindow::BacklashSlot()
                     serial.write("G91\n");
                     MachineReady=false;
                     ui->tbxCommandHistory->append("S: G91"); //Add the command to the history
-                    while (!MachineReady)//We HAVE to wait for the measurement
+                    while (MachineReady==false)//We HAVE to wait for the measurement
                     {
                         serial.waitForReadyRead(10);
                         ReceiveData();
@@ -215,23 +237,31 @@ void MainWindow::BacklashSlot()
                 serial.write("M114\n");
                 MachineReady=false;
                 ui->tbxCommandHistory->append("S: M114"); //Add the command to the history
-                while (Response=="")//We HAVE to wait for the measurement
+                while ((Response=="")&(~(Response.contains("Count"))))//We HAVE to wait for the measurement
                 {
-                    serial.waitForReadyRead(10);
+                    serial.waitForReadyRead(100);
                     ReceiveData();
                 }
-                    qDebug() << Response;
+                //QStringList PositionParts = Response.split(" ");
+                //MeasX=PositionParts[0];
+                //MeasX.remove("X:");
+                //MeasY=PositionParts[1];
+                //MeasY.remove("Y:");
+                //MeasZ=PositionParts[2];
+                //MeasZ.remove("Z:");
+
+                    //qDebug() << Response;
                     QString BacklashCommand="G0";
                     //X+
                     if (BacklashDirections[0])
                     {
-                        BacklashCommand+=" X" + QString::number(BacklashX);;
+                        BacklashCommand+=" X" + QString::number(BacklashX);
                         BacklashDirections[0]=0;
                     }
                     //X-
                     if (BacklashDirections[1])
                     {
-                            BacklashCommand+=" X-" + QString::number(BacklashX);;
+                            BacklashCommand+=" X-" + QString::number(BacklashX);
                             BacklashDirections[1]=0;
                     }
                     //Y+
@@ -258,7 +288,15 @@ void MainWindow::BacklashSlot()
                             BacklashCommand+=" Z-" + QString::number(BacklashZ);;
                             BacklashDirections[5]=0;
                     }
-                    qDebug()<<BacklashCommand;
+                    serial.write(BacklashCommand.toLocal8Bit() + "\n");
+                    MachineReady=false;
+                    ui->tbxCommandHistory->append("S: " + BacklashCommand); //Add the command to the history
+                    while (MachineReady==false)//We HAVE to wait for the measurement
+                    {
+                        serial.waitForReadyRead(10);
+                        ReceiveData();
+                    }
+                    //qDebug()<<BacklashCommand;
                     CompensationState=2;
 
                     if((RelativeEnabled==0)&(RelativeOverride==0)){
@@ -275,7 +313,16 @@ void MainWindow::BacklashSlot()
             }
             case 2: //Set position to measured location. (2)
             {
-                //MachineReady = false;
+                Response="";
+                serial.write("G92 X" + MeasX.toLocal8Bit() +" Y" + MeasY.toLocal8Bit() + " Z" + MeasZ.toLocal8Bit() + "\n");
+                qDebug()<<"G92 X" + MeasX.toLocal8Bit() +" Y" + MeasY.toLocal8Bit() + " Z" + MeasZ.toLocal8Bit();
+                MachineReady=false;
+                ui->tbxCommandHistory->append("S: G92 X" + MeasX +" Y" + MeasY + " Z" + MeasZ); //Add the command to the history
+                while (MachineReady==false)//We HAVE to wait for the measurement
+                {
+                    serial.waitForReadyRead(10);
+                    ReceiveData();
+                }
                 CompensationState =3;
                 return;
             }
@@ -331,7 +378,7 @@ void PromptProbeDataClear(){
 }
 
 void MainWindow::RelativeSendGCode(QString Command){
-    if(RelativeEnabled==0){SendGCode("G91"); RelativeOverride=1;}
+    if(RelativeEnabled==0){RelativeOverride=1; SendGCode("G91");}
     SendGCode(Command);
     if(RelativeEnabled==0){SendGCode("G90"); RelativeOverride=0;}
 }
@@ -355,11 +402,11 @@ QString MainWindow::SendGCode(QString Command){
         {   MachineReady =true;
             return "";//Don't send comments
         }
-        if (Command.contains("G90")&(RelativeOverride==1)){
+        if ((Command.contains("G90"))&(RelativeOverride==0)){
             //We are in absoloute movement
             RelativeEnabled = false;
         }
-        if (Command.contains("G91")&(RelativeOverride==1)){
+        if ((Command.contains("G91"))&(RelativeOverride==0)){
             //We are in relative movement
             RelativeEnabled = true;
         }
@@ -390,13 +437,13 @@ QString MainWindow::SendGCode(QString Command){
                       QString Xpos = CommandParts.filter("X").at(0);
                       Xpos = Xpos.mid(1);
                       float XposVal = Xpos.toFloat();
-                      qDebug()<<"X Destination: "<<XposVal;
+                      //qDebug()<<"X Destination: "<<XposVal;
                       if (RelativeEnabled|RelativeOverride){
                           XposVal = XposVal + PosX;
                       }
                       if ((XposVal > PosX) && (DeltaX < 0)){
                         //Compensate with positive backlash
-                        qDebug()<<"Compensating for X Backlash";
+                        //qDebug()<<"Compensating for X Backlash";
                         BacklashDirections[0]=true;
                         CompensationState=1;
                         DeltaX = XposVal - PosX;
@@ -404,7 +451,7 @@ QString MainWindow::SendGCode(QString Command){
                       }
                        else if ((XposVal < PosX) && (DeltaX >= 0)){
                         //Compensate with positive backlash
-                        qDebug()<<"Compensating for X Backlash";
+                        //qDebug()<<"Compensating for X Backlash";
                         BacklashDirections[1]=true;
                         CompensationState=1;
                         DeltaX = XposVal - PosX;
@@ -419,13 +466,13 @@ QString MainWindow::SendGCode(QString Command){
                     QString Ypos = CommandParts.filter("Y").at(0);
                     Ypos = Ypos.mid(1);
                     float YposVal = Ypos.toFloat();
-                    qDebug()<<"Y Destination: "<<YposVal;
+                    //qDebug()<<"Y Destination: "<<YposVal;
                     if (RelativeEnabled|RelativeOverride){
                         YposVal = YposVal + PosY;
                     }
                     if ((YposVal > PosY) && (DeltaY < 0)){
                       //Compensate with positive backlash
-                      qDebug()<<"Compensating for Y Backlash";
+                      //qDebug()<<"Compensating for Y Backlash";
                       BacklashDirections[2]=true;
                       CompensationState=1;
                       DeltaY = YposVal - PosY;
@@ -433,7 +480,7 @@ QString MainWindow::SendGCode(QString Command){
                     }
                      else if ((YposVal < PosY) && (DeltaY >= 0)){
                       //Compensate with positive backlash
-                      qDebug()<<"Compensating for Y Backlash";
+                      //qDebug()<<"Compensating for Y Backlash";
                       BacklashDirections[3]=true;
                       CompensationState=1;
                       DeltaY = YposVal - PosY;
@@ -448,13 +495,13 @@ QString MainWindow::SendGCode(QString Command){
                     QString Zpos = CommandParts.filter("Z").at(0);
                     Zpos = Zpos.mid(1);
                     float ZposVal = Zpos.toFloat();
-                    qDebug()<<"Z Destination: "<<ZposVal;
+                    //qDebug()<<"Z Destination: "<<ZposVal;
                     if (RelativeEnabled|RelativeOverride){
                         ZposVal = ZposVal + PosZ;
                     }
                     if ((ZposVal > PosZ) && (DeltaZ < 0)){
                       //Compensate with positive backlash
-                      qDebug()<<"Compensating for Z Backlash";
+                      //qDebug()<<"Compensating for Z Backlash";
                       BacklashDirections[4]=true;
                       CompensationState=1;
                       DeltaZ = ZposVal - PosZ;
@@ -462,7 +509,7 @@ QString MainWindow::SendGCode(QString Command){
                     }
                      else if ((ZposVal < PosZ) && (DeltaZ >= 0)){
                       //Compensate with positive backlash
-                      qDebug()<<"Compensating for Z Backlash";
+                      //qDebug()<<"Compensating for Z Backlash";
                       BacklashDirections[5]=true;
                       CompensationState=1;
                       DeltaZ = ZposVal - PosZ;
@@ -628,10 +675,10 @@ void MainWindow::on_btnSetZero_released()
 void MainWindow::on_btnRest_released()
 {
     //Here is a resting procedure that is customized for the OSE Circuit Mill
-    SendGCode("G28"); //Home all axes
-    SendGCode(RelativeMovement);
-    SendGCode(Movement + " Z-12 F100");
-    SendGCode(AbsoluteMovement);
+    //SendGCode("G28"); //Home all axes
+    //SendGCode(RelativeMovement);
+    //SendGCode(Movement + " Z-12 F100");
+    //SendGCode(AbsoluteMovement);
     SendGCode("M84");//Disable motors This only works in Marlin
 }
 
@@ -713,7 +760,7 @@ void MainWindow::on_btnSpindleOn_released()
 
 void MainWindow::on_btnStartProbe_released()
 {
-    ProbeTimer->start(1);
+    ProbeTimer->start(100);
     MeasurementArray=new float*[PointsY];
     for (int i=0; i < PointsY; ++i)
     {

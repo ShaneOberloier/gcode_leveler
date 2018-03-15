@@ -32,9 +32,9 @@ float TravelClearance = 5;
 bool CompensateBacklash = true;
 int CompensationState = 0;
 bool BacklashDirections[6] ={0,0,0,0,0,0};
-float BacklashX = 0;
-float BacklashY = 0;
-float BacklashZ = 0;
+float BacklashX = 0.1524;
+float BacklashY = 0.0254;
+float BacklashZ = 0.0508;
 QString RelativeMovement = "G91";
 QString AbsoluteMovement = "G90";
 QString SetPosition = "G92";
@@ -45,6 +45,9 @@ QString EndstopHit;
 
 //Variables for program book keeping
 bool ProbeDataExists =false;
+QString MeasX = 0; //Used to store values during backlash compensation
+QString MeasY = 0; //Used to store values during backlash compensation
+QString MeasZ = 0; //Used to store values during backlash compensation
 float PosX = 0; //Tracking position of X motors
 float PosY = 0; //Tracking position of Y motors
 float PosZ = 0; //Tracking position of Z motors
