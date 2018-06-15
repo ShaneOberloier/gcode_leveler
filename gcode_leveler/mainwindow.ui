@@ -780,7 +780,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset resource="resources.qrc">
+       <iconset>
         <normaloff>:/Right_Button.png</normaloff>:/Right_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -803,7 +803,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset resource="resources.qrc">
+       <iconset>
         <normaloff>:/Up_Button.png</normaloff>:/Up_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -826,7 +826,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset resource="resources.qrc">
+       <iconset>
         <normaloff>:/Down_Button.png</normaloff>:/Down_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -849,7 +849,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset resource="resources.qrc">
+       <iconset>
         <normaloff>:/Left_Button.png</normaloff>:/Left_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -872,7 +872,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset resource="resources.qrc">
+       <iconset>
         <normaloff>:/Up_Button.png</normaloff>:/Up_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -895,7 +895,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset resource="resources.qrc">
+       <iconset>
         <normaloff>:/Down_Button.png</normaloff>:/Down_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -1452,7 +1452,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLineEdit" name="txtBacklashX">
       <property name="geometry">
        <rect>
-        <x>120</x>
+        <x>80</x>
         <y>150</y>
         <width>41</width>
         <height>21</height>
@@ -1465,7 +1465,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLabel" name="lblBacklashZ">
       <property name="geometry">
        <rect>
-        <x>0</x>
+        <x>-40</x>
         <y>210</y>
         <width>121</width>
         <height>21</height>
@@ -1481,7 +1481,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLabel" name="lblBacklashY">
       <property name="geometry">
        <rect>
-        <x>0</x>
+        <x>-40</x>
         <y>180</y>
         <width>121</width>
         <height>21</height>
@@ -1497,7 +1497,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLineEdit" name="txtBacklashY">
       <property name="geometry">
        <rect>
-        <x>120</x>
+        <x>80</x>
         <y>180</y>
         <width>41</width>
         <height>21</height>
@@ -1510,7 +1510,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLabel" name="lblBacklashX">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>-30</x>
         <y>150</y>
         <width>111</width>
         <height>21</height>
@@ -1526,7 +1526,7 @@ p, li { white-space: pre-wrap; }
      <widget class="QLineEdit" name="txtBacklashZ">
       <property name="geometry">
        <rect>
-        <x>120</x>
+        <x>80</x>
         <y>210</y>
         <width>41</width>
         <height>21</height>
@@ -1697,6 +1697,45 @@ p, li { white-space: pre-wrap; }
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
       </property>
      </widget>
+     <widget class="QLineEdit" name="txtBacklashNegX">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>150</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>.01</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="txtBacklashNegY">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>180</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>.01</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="txtBacklashNegZ">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>210</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>.01</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tabHelp">
      <attribute name="title">
@@ -1741,8 +1780,6 @@ p, li { white-space: pre-wrap; }
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources>
-  <include location="resources.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

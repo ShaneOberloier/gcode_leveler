@@ -109,6 +109,18 @@ private slots:
 
     void UpdateStatus();
 
+    void on_txtBacklashX_textChanged(const QString &arg1);
+
+    void on_txtBacklashY_textChanged(const QString &arg1);
+
+    void on_txtBacklashNegX_textChanged(const QString &arg1);
+
+    void on_txtBacklashNegY_textChanged(const QString &arg1);
+
+    void on_txtBacklashZ_textChanged(const QString &arg1);
+
+    void on_txtBacklashNegZ_textChanged(const QString &arg1);
+
 private:
     Ui::MainWindow *ui;
 };

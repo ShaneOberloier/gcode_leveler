@@ -120,6 +120,7 @@ void MainWindow::MyTimerSlot()
         if(lineNumber<=LastLine-1){
             SendGCode(GCode[lineNumber]);
             lineNumber++;
+            ui->pbrRunProgress->setValue(lineNumber*100/LastLine);
         }
         else
             StreamTimer->stop();
@@ -261,7 +262,7 @@ void MainWindow::BacklashSlot()
                     //X-
                     if (BacklashDirections[1])
                     {
-                            BacklashCommand+=" X-" + QString::number(BacklashX);
+                            BacklashCommand+=" X-" + QString::number(BacklashNegX);
                             BacklashDirections[1]=0;
                     }
                     //Y+
@@ -273,7 +274,7 @@ void MainWindow::BacklashSlot()
                     //Y-
                     if (BacklashDirections[3])
                     {
-                            BacklashCommand+=" Y-" + QString::number(BacklashY);
+                            BacklashCommand+=" Y-" + QString::number(BacklashNegY);
                             BacklashDirections[3]=0;
                     }
                     //Y+
@@ -285,7 +286,7 @@ void MainWindow::BacklashSlot()
                     //Y-
                     if (BacklashDirections[5])
                     {
-                            BacklashCommand+=" Z-" + QString::number(BacklashZ);;
+                            BacklashCommand+=" Z-" + QString::number(BacklashNegZ);;
                             BacklashDirections[5]=0;
                     }
                     serial.write(BacklashCommand.toLocal8Bit() + "\n");
@@ -760,7 +761,7 @@ void MainWindow::on_btnSpindleOn_released()
 
 void MainWindow::on_btnStartProbe_released()
 {
-    ProbeTimer->start(100);
+    ProbeTimer->start(500);
     MeasurementArray=new float*[PointsY];
     for (int i=0; i < PointsY; ++i)
     {
@@ -849,4 +850,34 @@ void MainWindow::on_txtPointsY_textChanged(const QString &arg1)
 {
     if(!(ProbeTimer->isActive()))
         PointsY = ui->txtPointsY->text().toInt();
+}
+
+void MainWindow::on_txtBacklashX_textChanged(const QString &arg1)
+{
+    BacklashX = ui->txtBacklashX->text().toFloat();
+}
+
+void MainWindow::on_txtBacklashY_textChanged(const QString &arg1)
+{
+    BacklashY= ui->txtBacklashY->text().toFloat();
+}
+
+void MainWindow::on_txtBacklashNegX_textChanged(const QString &arg1)
+{
+    BacklashNegX = ui->txtBacklashNegX->text().toFloat();
+}
+
+void MainWindow::on_txtBacklashNegY_textChanged(const QString &arg1)
+{
+    BacklashNegY= ui->txtBacklashNegY->text().toFloat();
+}
+
+void MainWindow::on_txtBacklashZ_textChanged(const QString &arg1)
+{
+    BacklashZ = ui->txtBacklashZ->text().toFloat();
+}
+
+void MainWindow::on_txtBacklashNegZ_textChanged(const QString &arg1)
+{
+    BacklashNegZ = ui->txtBacklashNegZ->text().toFloat();
 }
