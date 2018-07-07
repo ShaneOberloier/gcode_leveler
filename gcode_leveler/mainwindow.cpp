@@ -63,6 +63,38 @@ MainWindow::MainWindow(QWidget *parent) :
           this, SLOT(BacklashSlot()));
 }
 
+void InsertIntoGCode(int Index, QString Text)
+{
+    int GCodeSize = GCode.size();
+    GCode << " ";
+    for (int i = GCodeSize-1; i >= Index; --i)
+    {
+        GCode.replace(i+1,GCode.at(i));
+    }
+    GCode[Index]=Text;
+}
+
+
+
+void InterpolateZ(float x, float y, float z)
+{
+    float xDelta = SizeX/(PointsX-1);
+    float yDelta = SizeY/(PointsY-1);
+    qDebug()<<xDelta<<yDelta;
+    int i = 0;
+    int j = 0;
+    //Figure out which points to use.
+//    for (i=0; i<PointsX;i++)
+//    {
+//        for (j=0; j<PointsY;j++)
+//        {
+//            qDebug()<<MeasurementArray[i][j];
+//            ui->tbxProbeData->insertPlainText(QString::number(MeasurementArray[i][j])+"\t");
+//        }
+//        ui->tbxProbeData->append("");
+//    }
+}
+
 void MainWindow::ReceiveData()
 {   QString data="";
     if(serial.canReadLine()){
@@ -77,7 +109,7 @@ void MainWindow::ReceiveData()
                 return;
             }
             Response=data;//We don't want to save "ok" in the response - to keep meaningful data.
-            if (Response.contains("Count"))
+            /*if (Response.contains("Count"))
             {
                 QStringList PositionParts = Response.split(" ");
                 MeasX=PositionParts[0];
@@ -86,7 +118,7 @@ void MainWindow::ReceiveData()
                 MeasY.remove("Y:");
                 MeasZ=PositionParts[2];
                 MeasZ.remove("Z:");
-            }
+            }*/
             if (Response.contains("endstops hit")){
                 QStringList ResponseParts = Response.split(":");
                 QString Meas = ResponseParts.at(3);
@@ -123,7 +155,10 @@ void MainWindow::MyTimerSlot()
             ui->pbrRunProgress->setValue(lineNumber*100/LastLine);
         }
         else
+        {
             StreamTimer->stop();
+            GCode.clear();
+        }
     }
 }
 
@@ -152,6 +187,17 @@ void MainWindow::ProbeStream()
                     //Leave this timer - We're all done probing!
                     ProbeState=0;
                     //Spit out Matrix data for debug
+                    for (int i=0; i<PointsX;i++)
+                    {
+                        for (int j=0; j<PointsY;j++)
+                        {
+                            qDebug()<<MeasurementArray[i][j];
+                            ui->tbxProbeData->insertPlainText(QString::number(MeasurementArray[i][j]));
+                            if (~(j==PointsY-1))
+                                ui->tbxProbeData->insertPlainText(",\t");
+                        }
+                        ui->tbxProbeData->append("");
+                    }
                     ProbeTimer->stop();
                     break;
                 }
@@ -209,135 +255,133 @@ void MainWindow::ProbeStream()
     }
 }
 
-void MainWindow::BacklashSlot()
+void MainWindow::FindGCodeFootPrint()
 {
-    ReceiveData();
-    //Must wait for Machine Ready at every step
-    if (MachineReady)
+    QStringList GCodeTemp;
+
+    QFile textFile(FilePath);
+    textFile.open(QIODevice::ReadOnly | QIODevice::Text);
+    QTextStream textStream(&textFile);
+    GCodeTemp.clear();
+    while(true)
     {
-        switch(CompensationState){
-            case 0:
-            {
-                BacklashTimer->stop();
-                CommandMemory="";
-                return;
-            }
-            case 1: //Compensate for backlash in each relevant direction (1)
-            {
-                if((RelativeEnabled==0)&(RelativeOverride==0)){
-                    serial.write("G91\n");
-                    MachineReady=false;
-                    ui->tbxCommandHistory->append("S: G91"); //Add the command to the history
-                    while (MachineReady==false)//We HAVE to wait for the measurement
-                    {
-                        serial.waitForReadyRead(10);
-                        ReceiveData();
-                    }
-                }
-                Response="";
-                serial.write("M114\n");
-                MachineReady=false;
-                ui->tbxCommandHistory->append("S: M114"); //Add the command to the history
-                while ((Response=="")&(~(Response.contains("Count"))))//We HAVE to wait for the measurement
-                {
-                    serial.waitForReadyRead(100);
-                    ReceiveData();
-                }
-                //QStringList PositionParts = Response.split(" ");
-                //MeasX=PositionParts[0];
-                //MeasX.remove("X:");
-                //MeasY=PositionParts[1];
-                //MeasY.remove("Y:");
-                //MeasZ=PositionParts[2];
-                //MeasZ.remove("Z:");
+        QString line = textStream.readLine();
+        if (line.isNull())
+            break;
+        else{
+            GCodeTemp.append(line);
+        }
+    }
+    int LineCount = GCodeTemp.length();
 
-                    //qDebug() << Response;
-                    QString BacklashCommand="G0";
-                    //X+
-                    if (BacklashDirections[0])
-                    {
-                        BacklashCommand+=" X" + QString::number(BacklashX);
-                        BacklashDirections[0]=0;
-                    }
-                    //X-
-                    if (BacklashDirections[1])
-                    {
-                            BacklashCommand+=" X-" + QString::number(BacklashNegX);
-                            BacklashDirections[1]=0;
-                    }
-                    //Y+
-                    if (BacklashDirections[2])
-                    {
-                            BacklashCommand+=" Y" + QString::number(BacklashY);
-                            BacklashDirections[2]=0;
-                    }
-                    //Y-
-                    if (BacklashDirections[3])
-                    {
-                            BacklashCommand+=" Y-" + QString::number(BacklashNegY);
-                            BacklashDirections[3]=0;
-                    }
-                    //Y+
-                    if (BacklashDirections[4])
-                    {
-                            BacklashCommand+=" Z" + QString::number(BacklashZ);;
-                            BacklashDirections[4]=0;
-                    }
-                    //Y-
-                    if (BacklashDirections[5])
-                    {
-                            BacklashCommand+=" Z-" + QString::number(BacklashNegZ);;
-                            BacklashDirections[5]=0;
-                    }
-                    serial.write(BacklashCommand.toLocal8Bit() + "\n");
-                    MachineReady=false;
-                    ui->tbxCommandHistory->append("S: " + BacklashCommand); //Add the command to the history
-                    while (MachineReady==false)//We HAVE to wait for the measurement
-                    {
-                        serial.waitForReadyRead(10);
-                        ReceiveData();
-                    }
-                    //qDebug()<<BacklashCommand;
-                    CompensationState=2;
-
-                    if((RelativeEnabled==0)&(RelativeOverride==0)){
-                        serial.write("G90\n");
-                        MachineReady=false;
-                        ui->tbxCommandHistory->append("S: G90"); //Add the command to the history
-                        while (!MachineReady)//We HAVE to wait for the measurement
-                        {
-                            serial.waitForReadyRead(10);
-                            ReceiveData();
-                        }
-                    }
-                return;
+    float xMin = 0;
+    float xMax = 0;
+    float yMin = 0;
+    float yMax = 0;
+    for (int i =0; i<LineCount; i++)
+    {
+        QString Command = GCodeTemp[i];
+        //qDebug()<<Command;
+        if(Command.contains("G1")|Command.contains("G0")){
+            //Extract positional values
+            QStringList CommandParts = Command.split(" ");
+            if (Command.contains("X")){
+                QString Xpos = CommandParts.filter("X").at(0);
+                Xpos = Xpos.mid(1);
+                float XPosVal = Xpos.toFloat();
+                if (XPosVal > xMax)
+                    xMax = XPosVal;
+                if (XPosVal < xMin)
+                    xMin = XPosVal;
             }
-            case 2: //Set position to measured location. (2)
-            {
-                Response="";
-                serial.write("G92 X" + MeasX.toLocal8Bit() +" Y" + MeasY.toLocal8Bit() + " Z" + MeasZ.toLocal8Bit() + "\n");
-                qDebug()<<"G92 X" + MeasX.toLocal8Bit() +" Y" + MeasY.toLocal8Bit() + " Z" + MeasZ.toLocal8Bit();
-                MachineReady=false;
-                ui->tbxCommandHistory->append("S: G92 X" + MeasX +" Y" + MeasY + " Z" + MeasZ); //Add the command to the history
-                while (MachineReady==false)//We HAVE to wait for the measurement
-                {
-                    serial.waitForReadyRead(10);
-                    ReceiveData();
-                }
-                CompensationState =3;
-                return;
-            }
-            case 3://Send original movement command (3)
-            {
-                MachineReady = false;
-                serial.write(CommandMemory.toLocal8Bit() + "\n"); //Send command & append new line characer
-                ui->tbxCommandHistory->append("S: " + CommandMemory); //Add the command to the history
-                UpdateStatus();
-                CompensationState = 0;
-                return;
+            if (Command.contains("Y")){
+                QString Ypos = CommandParts.filter("Y").at(0);
+                Ypos = Ypos.mid(1);
+                float YPosVal = Ypos.toFloat();
+                if (YPosVal > yMax)
+                    yMax = YPosVal;
+                if (YPosVal < yMin)
+                    yMin = YPosVal;
             }
         }
     }
+    qDebug()<<"XMin: "<<xMin;
+    qDebug()<<"XMax: "<<xMax;
+    qDebug()<<"YMin: "<<yMin;
+    qDebug()<<"YMax: "<<yMax;
+}
+
+
+void MainWindow::BacklashSlot()
+{
+
+    if((RelativeEnabled==0)&(RelativeOverride==0)){
+        InsertIntoGCode(lineNumber,"G90");}
+    QString BacklashCommand="G0";
+    QString PositionCommand="G92";
+    //X+
+    if (BacklashDirections[0])
+    {
+        BacklashCommand+=" X" + QString::number(BacklashX);
+        BacklashDirections[0]=0;
+        MeasX = QString::number(PosX-DeltaX);
+        PositionCommand += " X" + MeasX;
+    }
+    //X-
+    else if (BacklashDirections[1])
+    {
+        BacklashCommand+=" X-" + QString::number(BacklashNegX);
+        BacklashDirections[1]=0;
+        MeasX = QString::number(PosX-DeltaX);
+        PositionCommand += " X" + MeasX;
+    }
+    //Y+
+    if (BacklashDirections[2])
+    {
+        BacklashCommand+=" Y" + QString::number(BacklashY);
+        BacklashDirections[2]=0;
+        MeasY = QString::number(PosY-DeltaY);
+        PositionCommand += " Y" + MeasY;
+    }
+    //Y-
+    else if (BacklashDirections[3])
+    {
+        BacklashCommand+=" Y-" + QString::number(BacklashNegY);
+        BacklashDirections[3]=0;
+        MeasY = QString::number(PosY-DeltaY);
+        PositionCommand += " Y" + MeasY;
+    }
+    //Y+
+    if (BacklashDirections[4])
+    {
+        BacklashCommand+=" Z" + QString::number(BacklashZ);;
+        BacklashDirections[4]=0;
+        MeasZ = QString::number(PosZ-DeltaZ);
+        PositionCommand += " Z" + MeasZ;
+    }
+    //Y-
+    else if (BacklashDirections[5])
+    {
+        BacklashCommand+=" Z-" + QString::number(BacklashNegZ);;
+        BacklashDirections[5]=0;
+        MeasZ = QString::number(PosZ-DeltaZ);
+        PositionCommand += " Z" + MeasZ;
+    }
+
+
+
+
+    //InsertIntoGCode(lineNumber,"G92 X" + MeasX.toLocal8Bit() +" Y" + MeasY.toLocal8Bit() + " Z" + MeasZ.toLocal8Bit());
+    InsertIntoGCode(lineNumber,PositionCommand);
+    InsertIntoGCode(lineNumber,BacklashCommand);
+    if((RelativeEnabled==0)&(RelativeOverride==0)){
+
+        InsertIntoGCode(lineNumber,"G91");
+    }
+    BacklashTimer->stop();
+    lineNumber--;
+    CompensationState = 0;
+
 }
 
 MainWindow::~MainWindow()
@@ -378,21 +422,23 @@ void PromptProbeDataClear(){
     }
 }
 
+
 void MainWindow::RelativeSendGCode(QString Command){
-    if(RelativeEnabled==0){RelativeOverride=1; SendGCode("G91");}
-    SendGCode(Command);
-    if(RelativeEnabled==0){SendGCode("G90"); RelativeOverride=0;}
+    if(RelativeEnabled==0){RelativeOverride=1; GCode.append("G91");}
+    GCode.append(Command);
+    if(RelativeEnabled==0){GCode.append("G90"); RelativeOverride=0;}
+    if (~(StreamTimer->isActive()))
+    {
+    lineNumber=0;
+    StreamTimer->start(1);
+    }
 }
 
 QString MainWindow::SendGCode(QString Command){
     //QString Response; //What will be read back from the machine
     QByteArray CommandBytes = Command.toLocal8Bit(); //Make it so the string will play with serial
     if(serial.isOpen()){
-        //Make sure we didn't skip a backlash compensation
-        while(CompensationState != 0)
-        {
-            BacklashSlot();
-        }
+
         MachineReady =false;
         if (Command=="")
         {
@@ -526,9 +572,10 @@ QString MainWindow::SendGCode(QString Command){
             if (CompensationState != 0)
             {
                 //Turn on the backlash compensator.
-                BacklashTimer->start(1);
+                //BacklashTimer->start(1);
                 CommandMemory=Command;
                 MachineReady =true;
+                BacklashSlot();
                 return "";
             }
         }
@@ -538,11 +585,6 @@ QString MainWindow::SendGCode(QString Command){
         qDebug() << "Not connected";
         ui->tbxCommandHistory->append("ERROR: Failure to send command - not connected");
     }
-    //ReadTimer->stop();
-    //serial.waitForReadyRead(50);
-    //Response = serial.readAll(); //Read the response from the machine
-    //ui->tbxCommandHistory->append("R: " + Response);
-    //ReadTimer->start(100);
     UpdateStatus();
     return Response;
 }
@@ -558,17 +600,16 @@ void MainWindow::on_pbFileBrowse_released()
     textFile.open(QIODevice::ReadOnly | QIODevice::Text);
     QTextStream textStream(&textFile);
     ui->txtGCode->clear();
-    GCode.clear();
     while(true)
     {
         QString line = textStream.readLine();
         if (line.isNull())
             break;
         else{
-            GCode.append(line);
             ui->txtGCode->append(line);
            }
     }
+    FindGCodeFootPrint();
 
 }
 
@@ -604,14 +645,6 @@ void MainWindow::on_btnConnect_released()
                 qDebug() << "Connection Successful";
                 ReadTimer->start(10);
                 MachineReady=true;
-                /*serial.waitForReadyRead(1000);
-                QByteArray data;
-                while(serial.canReadLine())
-                {
-                    data = serial.readLine();
-                    ui->tbxCommandHistory->append("R: " + data);
-                    serial.waitForReadyRead(1000);
-                }*/
                 ui->btnConnect->setText("Disconnect");
         }else {
                 qDebug() << "Connection Failed";
@@ -675,11 +708,6 @@ void MainWindow::on_btnSetZero_released()
 
 void MainWindow::on_btnRest_released()
 {
-    //Here is a resting procedure that is customized for the OSE Circuit Mill
-    //SendGCode("G28"); //Home all axes
-    //SendGCode(RelativeMovement);
-    //SendGCode(Movement + " Z-12 F100");
-    //SendGCode(AbsoluteMovement);
     SendGCode("M84");//Disable motors This only works in Marlin
 }
 
@@ -720,6 +748,21 @@ void MainWindow::on_txtFileName_textEdited(const QString &arg1)
 void MainWindow::on_btnRun_released()
 {
     lineNumber=0;
+
+    QFile textFile(FilePath);
+    textFile.open(QIODevice::ReadOnly | QIODevice::Text);
+    QTextStream textStream(&textFile);
+    GCode.clear();
+    while(true)
+    {
+        QString line = textStream.readLine();
+        if (line.isNull())
+            break;
+        else{
+            GCode.append(line);
+           }
+    }
+
     StreamTimer->start(1);
 }
 
@@ -730,13 +773,7 @@ void MainWindow::on_pbTest_released()
 
 void MainWindow::on_btnTest2_released()
 {
-    Response="";
-    serial.write("M114\n");
-    while (Response=="")
-    {
-        serial.waitForReadyRead(1000);
-        ReceiveData();
-    }
+    InterpolateZ(5,5,5);
 }
 
 void MainWindow::on_pbFileBrowse_2_released()
@@ -762,6 +799,7 @@ void MainWindow::on_btnSpindleOn_released()
 void MainWindow::on_btnStartProbe_released()
 {
     ProbeTimer->start(500);
+    ProbeState = 0;
     MeasurementArray=new float*[PointsY];
     for (int i=0; i < PointsY; ++i)
     {

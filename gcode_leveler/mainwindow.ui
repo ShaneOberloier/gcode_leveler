@@ -467,12 +467,12 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>431</width>
+      <width>430</width>
       <height>331</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="tabMachineControl">
      <attribute name="title">
@@ -780,7 +780,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset>
+       <iconset resource="resources.qrc">
         <normaloff>:/Right_Button.png</normaloff>:/Right_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -788,6 +788,12 @@
         <width>32</width>
         <height>32</height>
        </size>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
       <property name="flat">
        <bool>true</bool>
@@ -803,7 +809,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset>
+       <iconset resource="resources.qrc">
         <normaloff>:/Up_Button.png</normaloff>:/Up_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -826,7 +832,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset>
+       <iconset resource="resources.qrc">
         <normaloff>:/Down_Button.png</normaloff>:/Down_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -849,7 +855,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset>
+       <iconset resource="resources.qrc">
         <normaloff>:/Left_Button.png</normaloff>:/Left_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -872,7 +878,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset>
+       <iconset resource="resources.qrc">
         <normaloff>:/Up_Button.png</normaloff>:/Up_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -895,7 +901,7 @@
        </rect>
       </property>
       <property name="icon">
-       <iconset>
+       <iconset resource="resources.qrc">
         <normaloff>:/Down_Button.png</normaloff>:/Down_Button.png</iconset>
       </property>
       <property name="iconSize">
@@ -1055,7 +1061,7 @@
       <property name="geometry">
        <rect>
         <x>60</x>
-        <y>100</y>
+        <y>40</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1068,7 +1074,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>100</y>
+        <y>40</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1087,7 +1093,7 @@
       <property name="geometry">
        <rect>
         <x>120</x>
-        <y>100</y>
+        <y>40</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1106,7 +1112,7 @@
       <property name="geometry">
        <rect>
         <x>170</x>
-        <y>100</y>
+        <y>40</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1119,7 +1125,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>140</y>
+        <y>80</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1135,7 +1141,7 @@
       <property name="geometry">
        <rect>
         <x>120</x>
-        <y>140</y>
+        <y>80</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1151,7 +1157,7 @@
       <property name="geometry">
        <rect>
         <x>170</x>
-        <y>140</y>
+        <y>80</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1161,7 +1167,7 @@
       <property name="geometry">
        <rect>
         <x>60</x>
-        <y>140</y>
+        <y>80</y>
         <width>51</width>
         <height>21</height>
        </rect>
@@ -1171,8 +1177,8 @@
       <property name="geometry">
        <rect>
         <x>230</x>
-        <y>100</y>
-        <width>141</width>
+        <y>40</y>
+        <width>191</width>
         <height>21</height>
        </rect>
       </property>
@@ -1187,8 +1193,8 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>180</y>
-        <width>361</width>
+        <y>120</y>
+        <width>411</width>
         <height>21</height>
        </rect>
       </property>
@@ -1200,8 +1206,8 @@
       <property name="geometry">
        <rect>
         <x>230</x>
-        <y>140</y>
-        <width>141</width>
+        <y>80</y>
+        <width>191</width>
         <height>21</height>
        </rect>
       </property>
@@ -1213,9 +1219,19 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>220</y>
-        <width>361</width>
+        <y>160</y>
+        <width>411</width>
         <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextBrowser" name="tbxProbeData">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>190</y>
+        <width>411</width>
+        <height>101</height>
        </rect>
       </property>
      </widget>
@@ -1459,7 +1475,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="text">
-       <string>.01</string>
+       <string>0</string>
       </property>
      </widget>
      <widget class="QLabel" name="lblBacklashZ">
@@ -1504,7 +1520,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="text">
-       <string>.01</string>
+       <string>0</string>
       </property>
      </widget>
      <widget class="QLabel" name="lblBacklashX">
@@ -1533,7 +1549,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="text">
-       <string>.01</string>
+       <string>0</string>
       </property>
      </widget>
      <widget class="QCheckBox" name="cbxCompensateBacklash">
@@ -1707,7 +1723,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="text">
-       <string>.01</string>
+       <string>0</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="txtBacklashNegY">
@@ -1720,7 +1736,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="text">
-       <string>.01</string>
+       <string>0</string>
       </property>
      </widget>
      <widget class="QLineEdit" name="txtBacklashNegZ">
@@ -1733,7 +1749,7 @@ p, li { white-space: pre-wrap; }
        </rect>
       </property>
       <property name="text">
-       <string>.01</string>
+       <string>0</string>
       </property>
      </widget>
     </widget>
@@ -1780,6 +1796,8 @@ p, li { white-space: pre-wrap; }
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

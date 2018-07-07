@@ -87,6 +87,8 @@ private slots:
 
     void BacklashSlot();
 
+    void FindGCodeFootPrint();
+
     void on_btnPause_released();
 
     void on_btnResume_released();
