@@ -691,6 +691,18 @@
             </item>
             <item>
              <widget class="QLineEdit" name="txtIncrement">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="text">
                <string>10</string>
               </property>
@@ -705,6 +717,18 @@
             </item>
             <item>
              <widget class="QLineEdit" name="txtFeedrate">
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="text">
                <string>500</string>
               </property>
@@ -769,6 +793,19 @@
                <string>Home All</string>
               </property>
              </widget>
+            </item>
+            <item row="2" column="2">
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
            </layout>
           </item>

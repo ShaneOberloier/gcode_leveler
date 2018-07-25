@@ -449,6 +449,23 @@ QString MainWindow::SendGCode(QString Command){
         {   MachineReady =true;
             return "";//Don't send comments
         }
+        if (Command.contains("M6"))
+        {   MachineReady =true;
+            MessageIncoming = true;
+            return "";//Don't send the message command
+        }
+        if (MessageIncoming == true)
+        {   MachineReady =true;
+            MessageIncoming = false;
+
+            QMessageBox Message;
+            Message.setWindowTitle("G-Code Message");
+            Message.setText(Command);
+            Message.setStandardButtons(QMessageBox::Ok);
+            Message.exec();
+
+            return "";//Don't send the message command
+        }
         if ((Command.contains("G90"))&(RelativeOverride==0)){
             //We are in absoloute movement
             RelativeEnabled = false;

@@ -30,6 +30,7 @@ float MovementSpeed = 500;
 float ProbingSpeed = 200;
 float TravelClearance = 5;
 bool CompensateBacklash = true;
+bool MessageIncoming = false;
 int CompensationState = 0;
 bool BacklashDirections[6] ={0,0,0,0,0,0};
 float BacklashX = 0;//16
