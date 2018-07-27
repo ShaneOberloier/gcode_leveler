@@ -16,10 +16,12 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    gcodelib.cpp
 
 HEADERS  += mainwindow.h \
-    global.h
+    global.h \
+    gcodelib.h
 
 FORMS    += mainwindow.ui
 

@@ -23,7 +23,7 @@ bool MeasRecorded = false;
 int ProbeState=0;
 int ProbeX=0; //X coordinate in probing array
 int ProbeY=0; //Y coordinate in probing array
-float **MeasurementArray;
+float *MeasurementArray = new float[1];
 float Increment = 10;
 float Feedrate = 500;
 float MovementSpeed = 500;

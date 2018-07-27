@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "global.h"
+#include "gcodelib.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QtSerialPort/QSerialPort>
@@ -72,27 +73,6 @@ void InsertIntoGCode(int Index, QString Text)
         GCode.replace(i+1,GCode.at(i));
     }
     GCode[Index]=Text;
-}
-
-
-
-void InterpolateZ(float x, float y, float z)
-{
-    float xDelta = SizeX/(PointsX-1);
-    float yDelta = SizeY/(PointsY-1);
-    qDebug()<<xDelta<<yDelta;
-    int i = 0;
-    int j = 0;
-    //Figure out which points to use.
-//    for (i=0; i<PointsX;i++)
-//    {
-//        for (j=0; j<PointsY;j++)
-//        {
-//            qDebug()<<MeasurementArray[i][j];
-//            ui->tbxProbeData->insertPlainText(QString::number(MeasurementArray[i][j])+"\t");
-//        }
-//        ui->tbxProbeData->append("");
-//    }
 }
 
 void MainWindow::ReceiveData()
@@ -187,17 +167,18 @@ void MainWindow::ProbeStream()
                     //Leave this timer - We're all done probing!
                     ProbeState=0;
                     //Spit out Matrix data for debug
-                    for (int i=0; i<PointsX;i++)
+                    for (int j=0; j<PointsY;j++)
                     {
-                        for (int j=0; j<PointsY;j++)
+                        for (int i=0; i<PointsX;i++)
                         {
-                            qDebug()<<MeasurementArray[i][j];
-                            ui->tbxProbeData->insertPlainText(QString::number(MeasurementArray[i][j]));
+                            qDebug()<<MeasurementArray[j+i*(PointsX+1)];
+                            ui->tbxProbeData->insertPlainText(QString::number(MeasurementArray[j+i*(PointsX+1)]));
                             if (~(j==PointsY-1))
                                 ui->tbxProbeData->insertPlainText(",\t");
                         }
                         ui->tbxProbeData->append("");
                     }
+                    AppendGCodeAndRun("G1 X0 Y0");
                     ProbeTimer->stop();
                     break;
                 }
@@ -239,7 +220,7 @@ void MainWindow::ProbeStream()
                 {
                     qDebug() << Measurement;
                     MeasRecorded=true;
-                    MeasurementArray[ProbeX][ProbeY] = Measurement;
+                    MeasurementArray[ProbeY+ProbeX*(PointsX+1)] = Measurement;
                     ProbeState=4;
                 }
                 break;
@@ -282,7 +263,7 @@ void MainWindow::FindGCodeFootPrint()
     {
         QString Command = GCodeTemp[i];
         //qDebug()<<Command;
-        if(Command.contains("G1")|Command.contains("G0")){
+        if(GCodeLib::IsMovementCommand(Command)){
             //Extract positional values
             QStringList CommandParts = Command.split(" ");
             if (Command.contains("X")){
@@ -392,10 +373,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    for(int i=0; i < PointsY; ++i)
-    {
-        delete [] MeasurementArray[i];
-    }
     delete [] MeasurementArray;
     on_btnRest_released();//This is the command to implement the rest procedure
     serial.close();//Close the serial communication so it may be picked up later
@@ -427,6 +404,15 @@ void MainWindow::RelativeSendGCode(QString Command){
     if(RelativeEnabled==0){RelativeOverride=1; GCode.append("G91");}
     GCode.append(Command);
     if(RelativeEnabled==0){GCode.append("G90"); RelativeOverride=0;}
+    if (~(StreamTimer->isActive()))
+    {
+    lineNumber=0;
+    StreamTimer->start(1);
+    }
+}
+
+void MainWindow::AppendGCodeAndRun(QString Command){
+    GCode.append(Command);
     if (~(StreamTimer->isActive()))
     {
     lineNumber=0;
@@ -494,7 +480,7 @@ QString MainWindow::SendGCode(QString Command){
         }
         if(CompensateBacklash){
             //Check and see if this is a motion command. If it is, then add backlash error.
-            if(Command.contains("G1")|Command.contains("G0")){
+            if(GCodeLib::IsMovementCommand(Command)){
                 //Extract positional values
                 QStringList CommandParts = Command.split(" ");
                 if (Command.contains("X")){
@@ -641,7 +627,13 @@ void MainWindow::UpdateStatus()
 
 void MainWindow::on_btnSendCommand_released()
 {
-    SendGCode(ui->txtCommand->text());
+    GCode.append(ui->txtCommand->text());
+    if (~(StreamTimer->isActive()))
+    {
+    lineNumber=0;
+    StreamTimer->start(1);
+    }
+
     ui->txtCommand->clear();
 }
 
@@ -726,6 +718,17 @@ void MainWindow::on_btnSetZero_released()
 void MainWindow::on_btnRest_released()
 {
     SendGCode("M84");//Disable motors This only works in Marlin
+    int rows = 4;
+    int columns = 3;
+    float* array = new float[rows*columns];
+    for (int i=0; i<=columns-1; i++)
+    {
+        for (int j=0; j<=rows-1; j++)
+        {
+            array[j+i*(columns+1)]=j+i*(columns+1);
+            qDebug()<<"X"<<i<<"Y"<<j<<array[j+i*(columns+1)];
+        }
+    }
 }
 
 void MainWindow::on_btnHomeX_released()
@@ -770,27 +773,21 @@ void MainWindow::on_btnRun_released()
     textFile.open(QIODevice::ReadOnly | QIODevice::Text);
     QTextStream textStream(&textFile);
     GCode.clear();
+    float ZPrev = INFINITY;
     while(true)
     {
         QString line = textStream.readLine();
         if (line.isNull())
             break;
         else{
+            //Conform the Line
+            line=GCodeLib::ConformGCodeCommand(line,ZPrev,MeasurementArray,PointsX,PointsY,0,0,SizeX/(PointsX-1),SizeY/(PointsY-1));
+            ZPrev = GCodeLib::ExtractZValue(line);
             GCode.append(line);
            }
     }
 
     StreamTimer->start(1);
-}
-
-void MainWindow::on_pbTest_released()
-{
-    ui->tbxCommandHistory->clear();
-}
-
-void MainWindow::on_btnTest2_released()
-{
-    InterpolateZ(5,5,5);
 }
 
 void MainWindow::on_pbFileBrowse_2_released()
@@ -817,55 +814,11 @@ void MainWindow::on_btnStartProbe_released()
 {
     ProbeTimer->start(500);
     ProbeState = 0;
-    MeasurementArray=new float*[PointsY];
-    for (int i=0; i < PointsY; ++i)
-    {
-        MeasurementArray[i]=new float[PointsX];
-    }
+    delete [] MeasurementArray;
+    MeasurementArray=new float[PointsX*PointsY];
     //Prompt to append G-Code
     //If Yes - Append G-Code
     //If No - do not append, but keep probe data
-}
-
-void MainWindow::ProbeSequence()
-{
-    float IncX = SizeX/PointsX;
-    float IncY = SizeY/PointsY;
-    float Measurement;
-    //Create Array of XxY
-    int Heights[PointsX][PointsY];
-    //Before Movement - enter relative movement
-    if(RelativeEnabled==0){SendGCode("G91"); RelativeOverride=1;}
-    //For all Y elements
-    for(int i=0; i<PointsY; i++)
-    {
-        //For all X elements
-        for(int j=0; j<PointsX; j++)
-        {
-            //Probe Height
-            SendGCode(Movement + " Z-10 F" + ProbingSpeed);
-            //Record Value at XY
-            while(Response==""|Response=="ok\n")
-            {
-                //echo:endstops hit:  Z:
-                //Do Nothing till a response is received
-                //sleep(5);
-            }
-            QStringList ResponseParts = Response.split(" ");
-            QString Meas = ResponseParts.filter(":").at(0);
-            Meas = Meas.mid(1);
-            Measurement = Meas.toFloat();
-            Response="";
-            qDebug()<<Measurement;
-            //Move Back Up
-            SendGCode(Movement + " Z5 F" + ProbingSpeed);
-            //Move Delta X
-            SendGCode(Movement + " X"+ IncX +" F" + MovementSpeed);
-        }
-        //Move Delta Y
-        SendGCode(Movement + " Y"+ IncY +" F" + MovementSpeed);
-    }
-    if(RelativeEnabled==0){SendGCode("G90"); RelativeOverride=0;}
 }
 
 void MainWindow::on_btnSpindleOff_released()
@@ -876,10 +829,6 @@ void MainWindow::on_btnSpindleOff_released()
 void MainWindow::on_btnAbortProbe_released()
 {
     ProbeTimer->stop();
-    for(int i=0; i < PointsY; ++i)
-    {
-        delete [] MeasurementArray[i];
-    }
     delete [] MeasurementArray;
 }
 

@@ -20,7 +20,7 @@ public:
     ~MainWindow();
     QString SendGCode(QString Command);
     void RelativeSendGCode(QString Command);
-    void ProbeSequence();
+    void AppendGCodeAndRun(QString Command);
     void MyTimer();
     QTimer *StreamTimer;
     QTimer *ProbeTimer;
@@ -72,10 +72,6 @@ private slots:
     void on_txtFileName_textEdited(const QString &arg1);
 
     void on_btnRun_released();
-
-    void on_pbTest_released();
-
-    void on_btnTest2_released();
 
     void on_pbFileBrowse_2_released();
 
