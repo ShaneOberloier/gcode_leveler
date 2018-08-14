@@ -35,7 +35,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>G-Code Leveling Utility</string>
+   <string>Copper Carve</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="enabled">
@@ -748,7 +748,7 @@
             <item row="0" column="1">
              <widget class="QPushButton" name="btnHomeX">
               <property name="text">
-               <string>Home X</string>
+               <string>Go To X = 0</string>
               </property>
              </widget>
             </item>
@@ -762,7 +762,7 @@
             <item row="1" column="1">
              <widget class="QPushButton" name="btnHomeY">
               <property name="text">
-               <string>Home Y</string>
+               <string>Go To Y = 0</string>
               </property>
              </widget>
             </item>
@@ -776,36 +776,23 @@
             <item row="2" column="1">
              <widget class="QPushButton" name="btnHomeZ">
               <property name="text">
-               <string>Home Z</string>
+               <string>Go to Z = 0</string>
               </property>
              </widget>
             </item>
             <item row="3" column="0">
              <widget class="QPushButton" name="btnRest">
               <property name="text">
-               <string>Rest</string>
+               <string>Rest Motors</string>
               </property>
              </widget>
             </item>
             <item row="3" column="1">
              <widget class="QPushButton" name="btnHomeall">
               <property name="text">
-               <string>Home All</string>
+               <string>Probe Z</string>
               </property>
              </widget>
-            </item>
-            <item row="2" column="2">
-             <spacer name="horizontalSpacer">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
             </item>
            </layout>
           </item>
@@ -848,29 +835,6 @@
          <layout class="QGridLayout" name="gridLayout_6">
           <item row="0" column="0">
            <layout class="QGridLayout" name="gridLayout_5">
-            <item row="0" column="0" colspan="5">
-             <widget class="QLineEdit" name="txtFileName">
-              <property name="toolTip">
-               <string>Path to the current G-Code file being altered</string>
-              </property>
-              <property name="whatsThis">
-               <string>Path to the current G-Code file being altered</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="5">
-             <widget class="QPushButton" name="pbFileBrowse">
-              <property name="toolTip">
-               <string>Navigate to the desired g-code file</string>
-              </property>
-              <property name="whatsThis">
-               <string>Navigate to the desired g-code file</string>
-              </property>
-              <property name="text">
-               <string>Browse</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="0">
              <widget class="QLabel" name="lblSizeX">
               <property name="toolTip">
@@ -904,22 +868,8 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="3">
-             <widget class="QLineEdit" name="txtSizeY">
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The size of the area to be probed in the Y axis (uses CNC's current unit system).&lt;br/&gt;Note that when a file has been selected, this will auto populate&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="4" colspan="2">
-             <widget class="QPushButton" name="btnStartProbe">
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Start the probing routine.&lt;/p&gt;&lt;p&gt;Be sure that your machine's probe is at (0,0,0)&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Caution: Machine motion motion will begin.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="text">
-               <string>Start Probe</string>
-              </property>
-             </widget>
+            <item row="2" column="1">
+             <widget class="QLineEdit" name="txtPointsX"/>
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="lblPointsX">
@@ -931,9 +881,6 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QLineEdit" name="txtPointsX"/>
-            </item>
             <item row="2" column="2">
              <widget class="QLabel" name="lblPointsY">
               <property name="text">
@@ -944,28 +891,78 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="3">
-             <widget class="QLineEdit" name="txtPointsY"/>
-            </item>
-            <item row="2" column="4" colspan="2">
-             <widget class="QPushButton" name="btnAbortProbe">
+            <item row="0" column="6">
+             <widget class="QPushButton" name="pbGetFootPrint">
+              <property name="toolTip">
+               <string>Gets Footprint data from currently loaded G-Code</string>
+              </property>
               <property name="text">
-               <string>Abort Probe</string>
+               <string>Get Footprint</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="0" colspan="6">
+            <item row="5" column="0" colspan="7">
+             <widget class="QTextBrowser" name="tbxProbeData"/>
+            </item>
+            <item row="4" column="0" colspan="7">
+             <widget class="QLineEdit" name="txtCurrentCommand"/>
+            </item>
+            <item row="3" column="0" colspan="7">
              <widget class="QProgressBar" name="pbrProgress">
               <property name="value">
                <number>0</number>
               </property>
              </widget>
             </item>
-            <item row="4" column="0" colspan="6">
-             <widget class="QLineEdit" name="txtCurrentCommand"/>
+            <item row="0" column="0" colspan="4">
+             <widget class="QLineEdit" name="txtFileName">
+              <property name="toolTip">
+               <string>Path to the current G-Code file being altered</string>
+              </property>
+              <property name="whatsThis">
+               <string>Path to the current G-Code file being altered</string>
+              </property>
+             </widget>
             </item>
-            <item row="5" column="0" colspan="6">
-             <widget class="QTextBrowser" name="tbxProbeData"/>
+            <item row="0" column="4" colspan="2">
+             <widget class="QPushButton" name="pbFileBrowse">
+              <property name="toolTip">
+               <string>Navigate to the desired g-code file</string>
+              </property>
+              <property name="whatsThis">
+               <string>Navigate to the desired g-code file</string>
+              </property>
+              <property name="text">
+               <string>Browse</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="3">
+             <widget class="QLineEdit" name="txtPointsY"/>
+            </item>
+            <item row="2" column="4" colspan="3">
+             <widget class="QPushButton" name="btnAbortProbe">
+              <property name="text">
+               <string>Abort Probe</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="3">
+             <widget class="QLineEdit" name="txtSizeY">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The size of the area to be probed in the Y axis (uses CNC's current unit system).&lt;br/&gt;Note that when a file has been selected, this will auto populate&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="4" colspan="3">
+             <widget class="QPushButton" name="btnStartProbe">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Start the probing routine.&lt;/p&gt;&lt;p&gt;Be sure that your machine's probe is at (0,0,0)&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Caution: Machine motion motion will begin.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string>Start Probe</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -978,58 +975,7 @@
          <layout class="QGridLayout" name="gridLayout_8">
           <item row="0" column="0">
            <layout class="QGridLayout" name="gridLayout_7">
-            <item row="0" column="0" colspan="5">
-             <widget class="QLineEdit" name="txtFileName_2">
-              <property name="toolTip">
-               <string>Path to the current G-Code file being altered</string>
-              </property>
-              <property name="whatsThis">
-               <string>Path to the current G-Code file being altered</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="5">
-             <widget class="QPushButton" name="pbFileBrowse_2">
-              <property name="toolTip">
-               <string>Navigate to the desired g-code file</string>
-              </property>
-              <property name="whatsThis">
-               <string>Navigate to the desired g-code file</string>
-              </property>
-              <property name="text">
-               <string>Browse</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QPushButton" name="btnRun">
-              <property name="text">
-               <string>Run</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1" colspan="2">
-             <widget class="QPushButton" name="btnPause">
-              <property name="text">
-               <string>Pause</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="3">
-             <widget class="QPushButton" name="btnResume">
-              <property name="text">
-               <string>Resume</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="4" colspan="2">
-             <widget class="QPushButton" name="btnStop">
-              <property name="text">
-               <string>STOP</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0" colspan="6">
+            <item row="2" column="0" colspan="9">
              <widget class="QTextEdit" name="txtGCode">
               <property name="verticalScrollBarPolicy">
                <enum>Qt::ScrollBarAlwaysOn</enum>
@@ -1043,17 +989,78 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="3" column="0" colspan="2">
+            <item row="3" column="0" colspan="3">
              <widget class="QLabel" name="lblCurrentLine">
               <property name="text">
                <string>Current Line: </string>
               </property>
              </widget>
             </item>
-            <item row="3" column="2" colspan="4">
+            <item row="0" column="8">
+             <widget class="QPushButton" name="pbFileBrowse_2">
+              <property name="toolTip">
+               <string>Navigate to the desired g-code file</string>
+              </property>
+              <property name="whatsThis">
+               <string>Navigate to the desired g-code file</string>
+              </property>
+              <property name="text">
+               <string>Browse</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="3" colspan="6">
              <widget class="QProgressBar" name="pbrRunProgress">
               <property name="value">
                <number>0</number>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0" colspan="8">
+             <widget class="QLineEdit" name="txtFileName_2">
+              <property name="toolTip">
+               <string>Path to the current G-Code file being altered</string>
+              </property>
+              <property name="whatsThis">
+               <string>Path to the current G-Code file being altered</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="2">
+             <widget class="QPushButton" name="btnRun">
+              <property name="text">
+               <string>Run</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2" colspan="2">
+             <widget class="QPushButton" name="btnPause">
+              <property name="text">
+               <string>Pause</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="4" colspan="2">
+             <widget class="QPushButton" name="btnResume">
+              <property name="text">
+               <string>Resume</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="6" colspan="2">
+             <widget class="QPushButton" name="btnStop">
+              <property name="text">
+               <string>Emergency STOP</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="8">
+             <widget class="QCheckBox" name="cbxApplyProbe">
+              <property name="text">
+               <string>Apply Probe Data</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
               </property>
              </widget>
             </item>

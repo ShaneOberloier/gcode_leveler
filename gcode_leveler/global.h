@@ -14,19 +14,21 @@ QString FilePath;
 QString ComPort;
 QString Baud;
 QString ConnectionStatus;
-float SizeX = 20;
-float SizeY = 20;
-int PointsX = 8;
-int PointsY = 8;
+float SizeX = 0;
+float SizeY = 0;
+int PointsX = 0;
+int PointsY = 0;
 float Measurement = 0;
 bool MeasRecorded = false;
+bool ProbeComplete = false;
+bool ApplyProbeData = true;
 int ProbeState=0;
 int ProbeX=0; //X coordinate in probing array
 int ProbeY=0; //Y coordinate in probing array
-float *MeasurementArray = new float[1];
+float MeasurementArray[256];
 float Increment = 10;
 float Feedrate = 500;
-float MovementSpeed = 500;
+float MovementSpeed = 1000;
 float ProbingSpeed = 200;
 float TravelClearance = 5;
 bool CompensateBacklash = true;

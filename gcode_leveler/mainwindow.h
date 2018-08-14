@@ -22,6 +22,7 @@ public:
     void RelativeSendGCode(QString Command);
     void AppendGCodeAndRun(QString Command);
     void MyTimer();
+    void NoConnectionMessage();
     QTimer *StreamTimer;
     QTimer *ProbeTimer;
     QTimer *ReadTimer;
@@ -118,6 +119,12 @@ private slots:
     void on_txtBacklashZ_textChanged(const QString &arg1);
 
     void on_txtBacklashNegZ_textChanged(const QString &arg1);
+
+    void on_pbGetFootPrint_released();
+
+    void on_btnStop_released();
+
+    void on_cbxApplyProbe_toggled(bool checked);
 
 private:
     Ui::MainWindow *ui;
