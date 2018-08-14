@@ -20,9 +20,8 @@ public:
     static float ExtractYValue(QString Command);
     static float ExtractZValue(QString Command);
     static float ExtractFeedRate(QString Command);
-    static QString ConformGCodeCommand(QString Command,float XPrevious, float YPrevious, float ZPrevious, float Data[], int XPoints, int YPoints, float XDatum, float YDatum, float XDelta, float YDelta);
+    static QString ConformGCodeCommand(QString Command, float ZPrevious, float Data[], int XPoints, int YPoints, float XDatum, float YDatum, float XDelta, float YDelta);
     static QString RelativeToAbsolute(QString Command,float XPrevious,float YPrevious, float ZPrevious);
     static QString AbsoluteToRelative(QString Command,float XPrevious,float YPrevious, float ZPrevious);
-    static QString SubstituteCommand(QString Command);
 };
 #endif // GCODELIB_H

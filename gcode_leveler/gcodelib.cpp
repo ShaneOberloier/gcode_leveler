@@ -3,15 +3,14 @@
 #include <QDebug>
 #include <QString>
 #include <QStringList>
-#include <QStandardPaths>
-#include <QFileDialog>
-#include <QFileInfo>
 #include "gcodelib.h"
 
 GCodeLib::GCodeLib()
 {
 
 }
+
+float Info[3][4] = {{0,1,2,3}, {4,5,6,7}, {8,9,10,11}};
 
 float GCodeLib::Interpolate3D(float X, float Y, float Z, float Data[], int XPoints, int YPoints, float XDatum, float YDatum, float XDelta, float YDelta)
 {
@@ -194,7 +193,7 @@ float GCodeLib::ExtractFeedRate(QString Command)
     }
 }
 
-QString GCodeLib::ConformGCodeCommand(QString Command,float XPrevious, float YPrevious, float ZPrevious, float Data[], int XPoints, int YPoints, float XDatum, float YDatum, float XDelta, float YDelta)
+QString GCodeLib::ConformGCodeCommand(QString Command, float ZPrevious, float Data[], int XPoints, int YPoints, float XDatum, float YDatum, float XDelta, float YDelta)
 {
     if(GCodeLib::IsMovementCommand(Command))
     {
@@ -202,10 +201,6 @@ QString GCodeLib::ConformGCodeCommand(QString Command,float XPrevious, float YPr
         float Y = ExtractYValue(Command);
         float Z = ExtractZValue(Command);
         float Feed = ExtractFeedRate(Command);
-        if ((X == INFINITY) & (XPrevious != INFINITY))
-            X = XPrevious;
-        if ((Y == INFINITY) & (YPrevious != INFINITY))
-            Y = YPrevious;
         if ((Z == INFINITY) & (ZPrevious != INFINITY))
             Z = ZPrevious;
 
@@ -278,62 +273,4 @@ QString GCodeLib::AbsoluteToRelative(QString Command,float XPrevious,float YPrev
     {
         return Command;
     }
-}
-
-bool fileExists(QString path) {
-    QFileInfo check_file(path);
-    // check if path exists and if yes: Is it really a file and no directory?
-    return check_file.exists() && check_file.isFile();
-}
-
-QStringList Substitutions;
-bool SubstitutionsLoaded = false;
-QString GCodeLib::SubstituteCommand(QString Command)
-{
-    QString Path = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    Path += "/CopperCarve/substitutions.txt";
-    QFile textFile(Path);
-    QFileInfo check_file(Path);
-    textFile.open(QIODevice::ReadOnly | QIODevice::Text);
-    QTextStream textStream(&textFile);
-
-    while(!(SubstitutionsLoaded))
-    {
-        if (check_file.exists() && check_file.isFile())
-        {
-        QString line = textStream.readLine();
-        if (line.isNull())
-        {
-            SubstitutionsLoaded = true;
-            break;
-        }
-        else{
-            QStringList SubstitutionParts = line.split(" ");
-            Substitutions.append(SubstitutionParts.at(0));
-            Substitutions.append(SubstitutionParts.at(1));
-           }
-        }
-        else
-        {
-            Substitutions.append("M03");
-            Substitutions.append("M106");
-            Substitutions.append("M05");
-            Substitutions.append("M107");
-            Substitutions.append("G94");
-            Substitutions.append(";Command_Removed");
-            break;
-        }
-    }
-    if (Command.left(2) == " F")
-    {
-        Command.replace(" F","G1 F");
-    }
-    for (int i=0; i<= Substitutions.length()-2;i=i+2)
-    {
-        if (Command.contains(Substitutions.at(i)))
-            Command.replace(Substitutions.at(i),Substitutions.at(i+1));
-    }
-    return Command;
-//    if (!Command.contains(" X"))
-//        Command.replace("X"," X");
 }
