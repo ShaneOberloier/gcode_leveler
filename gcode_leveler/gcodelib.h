@@ -7,6 +7,7 @@
 #include <QString>
 #include <QStringList>
 
+QStringList SubstitutionList;
 
 class GCodeLib
 {
@@ -23,5 +24,7 @@ public:
     static QString ConformGCodeCommand(QString Command, float ZPrevious, float Data[], int XPoints, int YPoints, float XDatum, float YDatum, float XDelta, float YDelta);
     static QString RelativeToAbsolute(QString Command,float XPrevious,float YPrevious, float ZPrevious);
     static QString AbsoluteToRelative(QString Command,float XPrevious,float YPrevious, float ZPrevious);
+    static QString LoadSubstitutionList();
+    static QString ReplaceCommand(QString Command);
 };
 #endif // GCODELIB_H

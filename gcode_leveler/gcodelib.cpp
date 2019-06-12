@@ -28,6 +28,10 @@ float GCodeLib::Interpolate3D(float X, float Y, float Z, float Data[], int XPoin
             Xindex = i;
             break;
         }
+        else
+        {
+            Xindex = i;
+        }
     }
     for(int i=1; i<=YPoints; i++)
     {
@@ -37,6 +41,10 @@ float GCodeLib::Interpolate3D(float X, float Y, float Z, float Data[], int XPoin
             Y1 = i*YDelta+YDatum;
             Yindex = i;
             break;
+        }
+        else
+        {
+            Yindex = i;
         }
     }
     Z1 = Data[Yindex+Xindex*(XPoints+1)];
@@ -273,4 +281,22 @@ QString GCodeLib::AbsoluteToRelative(QString Command,float XPrevious,float YPrev
     {
         return Command;
     }
+}
+
+QString GCodeLib::LoadSubstitutionList()
+{
+    //Check to see if the file exists.
+    //If the file does not exist, report an error
+    //Load each line into list
+}
+
+QString GCodeLib::SubstituteCommand(QString Command)
+{
+    //Parse the command
+    QStringList CommandParts = Command.split(" ");
+    //Get the command
+    QString Code = CommandParts[0];
+    //Check and see if the command is in the list
+    //Extract the equivalent command from the list (if it exists)
+    //Reconstruct the string
 }
