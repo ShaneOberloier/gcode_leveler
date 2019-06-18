@@ -119,6 +119,8 @@ private slots:
 
     void on_txtBacklashNegZ_textChanged(const QString &arg1);
 
+    void on_pushButton_released();
+
 private:
     Ui::MainWindow *ui;
 };

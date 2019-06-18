@@ -69,3 +69,4 @@ bool MachineReady =0;
 //Program resources
 QSerialPort serial;
 QStringList GCode;
+

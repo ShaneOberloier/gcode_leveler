@@ -3,7 +3,11 @@
 #include <QDebug>
 #include <QString>
 #include <QStringList>
+#include <QStandardPaths>
+#include <QFile>
 #include "gcodelib.h"
+
+QStringList SubstitutionList;
 
 GCodeLib::GCodeLib()
 {
@@ -285,9 +289,20 @@ QString GCodeLib::AbsoluteToRelative(QString Command,float XPrevious,float YPrev
 
 QString GCodeLib::LoadSubstitutionList()
 {
-    //Check to see if the file exists.
-    //If the file does not exist, report an error
-    //Load each line into list
+    QFile textFile(QStandardPaths::locate(QStandardPaths::HomeLocation, QString(), QStandardPaths::LocateDirectory) + "/CopperCarve/substitutions.txt");
+    textFile.open(QIODevice::ReadOnly | QIODevice::Text);
+    QTextStream textStream(&textFile);
+    while(true)
+    {
+        QString line = textStream.readLine();
+        if (line.isNull())
+            break;
+        else{
+            SubstitutionList.append(line);
+           }
+    }
+    textFile.close();
+    return "";
 }
 
 QString GCodeLib::SubstituteCommand(QString Command)

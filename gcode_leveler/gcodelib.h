@@ -6,8 +6,9 @@
 #include <QDebug>
 #include <QString>
 #include <QStringList>
+#include <QStandardPaths>
 
-QStringList SubstitutionList;
+
 
 class GCodeLib
 {
@@ -25,6 +26,6 @@ public:
     static QString RelativeToAbsolute(QString Command,float XPrevious,float YPrevious, float ZPrevious);
     static QString AbsoluteToRelative(QString Command,float XPrevious,float YPrevious, float ZPrevious);
     static QString LoadSubstitutionList();
-    static QString ReplaceCommand(QString Command);
+    static QString SubstituteCommand(QString Command);
 };
 #endif // GCODELIB_H

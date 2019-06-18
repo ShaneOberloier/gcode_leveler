@@ -62,6 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // setup signal and slot
     connect(BacklashTimer, SIGNAL(timeout()),
           this, SLOT(BacklashSlot()));
+
 }
 
 void InsertIntoGCode(int Index, QString Text)
@@ -884,4 +885,9 @@ void MainWindow::on_txtBacklashZ_textChanged(const QString &arg1)
 void MainWindow::on_txtBacklashNegZ_textChanged(const QString &arg1)
 {
     BacklashNegZ = ui->txtBacklashNegZ->text().toFloat();
+}
+
+void MainWindow::on_pushButton_released()
+{
+    GCodeLib::LoadSubstitutionList();
 }
