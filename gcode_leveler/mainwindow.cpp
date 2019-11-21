@@ -889,5 +889,11 @@ void MainWindow::on_txtBacklashNegZ_textChanged(const QString &arg1)
 
 void MainWindow::on_pushButton_released()
 {
-    GCodeLib::LoadSubstitutionList();
+    //GCodeLib::LoadSubstitutionList();
+    SendGCode("M106 P1 S255");//Turn on the fan
+    SendGCode("G91");//Relative Movement Mode
+    SendGCode("M106 P0 S255");//Turn on the welder
+    SendGCode("G1 X10 E20 F1000");//Deposit Some Material
+    //SendGCode("G4 P500");//Wait
+    SendGCode("M106 P0 S00");//Turn off the welder
 }
